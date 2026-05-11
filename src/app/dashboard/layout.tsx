@@ -78,6 +78,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Políticas de Seguridad
           </Link>
           <Link
+            href="/dashboard/config"
+            className={`block px-6 py-2 text-sm font-medium ${
+              pathname === "/dashboard/config"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            Configuración
+          </Link>
+          <Link
             href="/dashboard/logs"
             className={`block px-6 py-2 text-sm font-medium ${
               pathname === "/dashboard/logs"

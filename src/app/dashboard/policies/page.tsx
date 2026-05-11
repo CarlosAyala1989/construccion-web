@@ -8,19 +8,29 @@ type Policy = {
   target: string;
   password: string;
   priority: number;
+  workspaceId: string | null;
+  workspace: { name: string } | null;
+};
+
+type Workspace = {
+  id: string;
+  name: string;
 };
 
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [type, setType] = useState("SEMANTIC");
   const [target, setTarget] = useState("");
   const [password, setPassword] = useState("");
   const [priority, setPriority] = useState(0);
+  const [workspaceId, setWorkspaceId] = useState("");
 
   useEffect(() => {
     fetchPolicies();
+    fetchWorkspaces();
   }, []);
 
   const fetchPolicies = async () => {
@@ -30,21 +40,44 @@ export default function PoliciesPage() {
     setIsLoading(false);
   };
 
+  const fetchWorkspaces = async () => {
+    const res = await fetch("/api/workspaces");
+    if (res.ok) setWorkspaces(await res.json());
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/policies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, target, password, priority: Number(priority) }),
+      body: JSON.stringify({
+        type,
+        target,
+        password,
+        priority: Number(priority),
+        workspaceId: workspaceId || null,
+      }),
     });
 
     if (res.ok) {
       setTarget("");
       setPassword("");
       setPriority(0);
+      setWorkspaceId("");
       fetchPolicies();
     } else {
       alert("Error al crear política.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar esta política de seguridad? Esta acción es irreversible.")) return;
+
+    const res = await fetch(`/api/policies?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      fetchPolicies();
+    } else {
+      alert("Error al eliminar política.");
     }
   };
 
@@ -84,6 +117,16 @@ export default function PoliciesPage() {
               <input type="number" required value={priority} onChange={(e) => setPriority(Number(e.target.value))} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white" />
               <p className="text-xs text-gray-500 mt-1">Mayor número = Mayor jerarquía en empates.</p>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Espacio de Trabajo (Opcional)</label>
+              <select value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white">
+                <option value="">Global (Todos los espacios)</option>
+                {workspaces.map(ws => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Si no seleccionas espacio, aplica a todos.</p>
+            </div>
             <button type="submit" className="w-full bg-indigo-600 text-white rounded-md py-2 px-4 text-sm font-medium hover:bg-indigo-700">
               Crear Regla
             </button>
@@ -96,12 +139,16 @@ export default function PoliciesPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo / Prioridad</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objetivo (Target)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Espacio</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contraseña</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
-                <tr><td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
+              ) : policies.length === 0 ? (
+                <tr><td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No hay políticas configuradas.</td></tr>
               ) : policies.map(pol => (
                 <tr key={pol.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -111,7 +158,24 @@ export default function PoliciesPage() {
                     <div className="text-xs text-gray-500 mt-1">Prioridad: {pol.priority}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pol.target}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono bg-gray-100 px-2 rounded">{pol.password}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {pol.workspace ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        {pol.workspace.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Global</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{pol.password}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleDelete(pol.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

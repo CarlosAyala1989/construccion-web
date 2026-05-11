@@ -24,30 +24,60 @@ model User {
 }
 
 model Workspace {
-  id              String   @id @default(uuid())
+  id              String           @id @default(uuid())
   name            String
-  cloudPath       String   // e.g., "Google Drive/Contabilidad"
-  defaultPassword String   // "Secure by Default" base password
-  users           User[]   @relation("UserWorkspaces")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  cloudPath       String           // e.g., "Google Drive/Contabilidad"
+  defaultPassword String           // "Secure by Default" base password
+  users           User[]           @relation("UserWorkspaces")
+  policies        SecurityPolicy[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model SecurityPolicy {
-  id          String   @id @default(uuid())
-  type        String   // "SEMANTIC" (Text/OCR) or "VISUAL" (Template Matching)
-  target      String   // Keyword, exact sentence, or visual template identifier
-  password    String   // Cryptographic replacement password
-  priority    Int      @default(0) // Used for resolving conflicts (Visión > Texto)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String     @id @default(uuid())
+  type        String     // "SEMANTIC" (Text/OCR) or "VISUAL" (Template Matching)
+  target      String     // Keyword, exact sentence, or visual template identifier
+  password    String     // Cryptographic replacement password
+  priority    Int        @default(0) // Used for resolving conflicts (Visión > Texto)
+  workspaceId String?    // Optional: link to a specific workspace
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  details   String
-  status    String   // "SUCCESS" or "FAILURE"
-  createdAt DateTime @default(now())
+  id          String     @id @default(uuid())
+  userId      String?
+  userName    String?    // Denormalized for historical query performance
+  action      String     // e.g. "SCAN_UPLOADED", "ENCRYPTION_APPLIED", "LOGIN", "USER_CREATED"
+  details     String
+  status      String     // "SUCCESS" or "FAILURE"
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime   @default(now())
+}
+
+// Global system configuration (singleton-like, managed by admin)
+model Config {
+  id                    String   @id @default(uuid())
+  compressionEnabled    Boolean  @default(false)  // Enable PDF compression before cloud upload
+  compressionThresholdMb Int     @default(10)     // MB threshold for triggering compression
+  deleteLocalAfterUpload Boolean @default(false)  // Remove local copy after confirmed upload
+  cloudProvider         String   @default("MANUAL") // "GOOGLE_DRIVE", "DROPBOX", "MANUAL"
+  cloudCredentials      String?  // Encrypted cloud account credentials/tokens (JSON)
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+}
+
+// Admin-defined nomenclature fields for automatic document classification
+model NomenclatureField {
+  id          String   @id @default(uuid())
+  fieldName   String   // e.g. "Código de Proyecto", "Disciplina", "Fecha"
+  fieldOrder  Int      @default(0)   // Order in the filename construction
+  isRequired  Boolean  @default(true)
+  separator   String   @default("_") // Separator character between fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

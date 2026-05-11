@@ -28,6 +28,12 @@ export default function UsersPage() {
   const [password, setPassword] = useState("");
   const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>([]);
 
+  // Password Reset Modal
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetUserName, setResetUserName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+
   useEffect(() => {
     fetchUsers();
     fetchWorkspaces();
@@ -61,11 +67,15 @@ export default function UsersPage() {
       setSelectedWorkspaces([]);
       fetchUsers();
     } else {
-      alert("Error al crear usuario.");
+      const data = await res.json();
+      alert(data.error || "Error al crear usuario.");
     }
   };
 
   const toggleUserStatus = async (id: string, currentStatus: boolean) => {
+    const action = currentStatus ? "dar de baja" : "reactivar";
+    if (!confirm(`¿Deseas ${action} a este usuario?`)) return;
+
     const res = await fetch(`/api/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -85,12 +95,91 @@ export default function UsersPage() {
     );
   };
 
+  const openResetModal = (userId: string, userName: string) => {
+    setResetUserId(userId);
+    setResetUserName(userName);
+    setNewPassword("");
+    setResetMessage("");
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetUserId) return;
+
+    const res = await fetch(`/api/users/${resetUserId}/reset-password`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword }),
+    });
+
+    if (res.ok) {
+      setResetMessage("✅ Contraseña actualizada exitosamente.");
+      setNewPassword("");
+      setTimeout(() => {
+        setResetUserId(null);
+        setResetMessage("");
+      }, 2000);
+    } else {
+      const data = await res.json();
+      setResetMessage(`❌ ${data.error || "Error al resetear contraseña."}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Password Reset Modal */}
+      {resetUserId && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Forzar Rotación de Contraseña
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Resetear contraseña de: <strong>{resetUserName}</strong>
+            </p>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+              {resetMessage && (
+                <div className={`text-sm p-3 rounded-md ${resetMessage.includes("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  {resetMessage}
+                </div>
+              )}
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setResetUserId(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                >
+                  Cambiar Contraseña
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <h3 className="text-lg font-medium text-gray-900">Gestión de Empleados y Seguridad (Zero Trust)</h3>
         <p className="mt-2 text-sm text-gray-500">
           Crea empleados manualmente y asigna sus espacios de trabajo. No se permiten registros automáticos.
+          Puedes forzar la rotación de contraseñas en cualquier momento.
         </p>
       </div>
 
@@ -146,7 +235,7 @@ export default function UsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado / Rol</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Espacios (Silos)</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -174,14 +263,22 @@ export default function UsersPage() {
                       {user.workspaces.length === 0 && <span className="text-xs text-gray-400">Sin acceso</span>}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                     {user.role !== 'ADMIN' && (
-                      <button 
-                        onClick={() => toggleUserStatus(user.id, user.isActive)}
-                        className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                      >
-                        {user.isActive ? 'Dar de Baja' : 'Reactivar'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openResetModal(user.id, user.name)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          Resetear Clave
+                        </button>
+                        <button 
+                          onClick={() => toggleUserStatus(user.id, user.isActive)}
+                          className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                        >
+                          {user.isActive ? 'Dar de Baja' : 'Reactivar'}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
