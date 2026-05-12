@@ -30,6 +30,18 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       }
     });
 
+    // Audit log for permission change
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Admin",
+        action: "WORKSPACE_USERS_UPDATED",
+        details: `Usuarios asignados a espacio ${updatedWorkspace.name}: ${userIds.length} usuario(s)`,
+        status: "SUCCESS",
+        workspaceId: id,
+      }
+    });
+
     return NextResponse.json(updatedWorkspace);
   } catch (error) {
     return NextResponse.json({ error: "Error al asignar usuarios al espacio de trabajo" }, { status: 500 });

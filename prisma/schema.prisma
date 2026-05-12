@@ -1,13 +1,12 @@
 // This is your Prisma schema file.
-// Architecture specifies MySQL for production, but SQLite is used here for rapid local prototyping without external dependencies.
-// To switch to MySQL, change provider to "mysql" and update the DATABASE_URL in .env.
+// Connected to MySQL production database (gobernanza_db).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -52,7 +51,7 @@ model AuditLog {
   userId      String?
   userName    String?    // Denormalized for historical query performance
   action      String     // e.g. "SCAN_UPLOADED", "ENCRYPTION_APPLIED", "LOGIN", "USER_CREATED"
-  details     String
+  details     String     @db.Text
   status      String     // "SUCCESS" or "FAILURE"
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id])
@@ -66,7 +65,7 @@ model Config {
   compressionThresholdMb Int     @default(10)     // MB threshold for triggering compression
   deleteLocalAfterUpload Boolean @default(false)  // Remove local copy after confirmed upload
   cloudProvider         String   @default("MANUAL") // "GOOGLE_DRIVE", "DROPBOX", "MANUAL"
-  cloudCredentials      String?  // Encrypted cloud account credentials/tokens (JSON)
+  cloudCredentials      String?  @db.Text // Encrypted cloud account credentials/tokens (JSON)
   updatedAt             DateTime @updatedAt
   createdAt             DateTime @default(now())
 }

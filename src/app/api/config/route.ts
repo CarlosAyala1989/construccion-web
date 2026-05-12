@@ -71,6 +71,22 @@ export async function PATCH(request: Request) {
       });
     }
 
+    // Audit log for config change
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Admin",
+        action: "CONFIG_UPDATED",
+        details: JSON.stringify({
+          compressionEnabled: config.compressionEnabled,
+          compressionThresholdMb: config.compressionThresholdMb,
+          deleteLocalAfterUpload: config.deleteLocalAfterUpload,
+          cloudProvider: config.cloudProvider,
+        }),
+        status: "SUCCESS",
+      }
+    });
+
     return NextResponse.json(config);
   } catch (error) {
     return NextResponse.json({ error: "Error al actualizar configuración" }, { status: 500 });

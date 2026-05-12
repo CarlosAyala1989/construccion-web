@@ -36,6 +36,17 @@ export async function POST(request: Request) {
       }
     });
 
+    // Audit log for workspace creation
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Admin",
+        action: "WORKSPACE_CREATED",
+        details: `Espacio de trabajo creado: ${name} (Ruta: ${cloudPath})`,
+        status: "SUCCESS",
+      }
+    });
+
     return NextResponse.json(newWorkspace, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: "Error al crear espacio de trabajo" }, { status: 500 });

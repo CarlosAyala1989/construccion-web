@@ -60,6 +60,17 @@ export async function POST(request: Request) {
       }
     });
 
+    // Audit log for user creation (Zero Trust onboarding)
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Admin",
+        action: "USER_CREATED",
+        details: `Empleado creado: ${name} (${email}), Rol: ${role || "EMPLOYEE"}, Espacios: ${workspaceIds?.length || 0}`,
+        status: "SUCCESS",
+      }
+    });
+
     const { password: _, ...safeUser } = newUser;
     return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
