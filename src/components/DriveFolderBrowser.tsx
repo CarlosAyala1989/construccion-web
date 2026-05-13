@@ -16,13 +16,14 @@ type BreadcrumbItem = {
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (path: string, folderId: string) => void;
+  onSelect: (path: string, folderId: string, refreshToken: string | null) => void;
   clientId: string;
 };
 
 // ─── Component ────────────────────────────────────────
 export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId }: Props) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([{ id: "root", name: "Mi Drive" }]);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,32 +37,59 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
 
   const currentParentId = breadcrumb[breadcrumb.length - 1].id;
 
-  // ─── Google Auth ──────────────────────────────────
+  // ─── Google Auth (Authorization Code Flow for refresh token) ──
   const handleGoogleAuth = useCallback(() => {
     if (!clientId) {
       setError("Falta configurar NEXT_PUBLIC_GOOGLE_CLIENT_ID en el archivo .env");
       return;
     }
 
-    // Use Google Identity Services tokenClient
-    const tokenClient = (window as any).google?.accounts?.oauth2?.initTokenClient({
+    const gis = (window as any).google?.accounts?.oauth2;
+    if (!gis) {
+      setError("La librería de Google Identity Services no se cargó. Recarga la página.");
+      return;
+    }
+
+    // Use code client (authorization code flow) to get a refresh_token
+    const codeClient = gis.initCodeClient({
       client_id: clientId,
       scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
-      callback: (response: any) => {
+      ux_mode: "popup",
+      callback: async (response: any) => {
         if (response.error) {
           setError(`Error de autenticación: ${response.error}`);
           return;
         }
-        setAccessToken(response.access_token);
-        setError("");
+
+        // Exchange the authorization code for tokens on our server
+        try {
+          const tokenRes = await fetch("/api/drive/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: response.code }),
+          });
+
+          if (!tokenRes.ok) {
+            const errData = await tokenRes.json();
+            setError(errData.error || "Error al obtener credenciales");
+            return;
+          }
+
+          const tokens = await tokenRes.json();
+          setAccessToken(tokens.access_token);
+          setRefreshToken(tokens.refresh_token || null);
+          setError("");
+
+          if (!tokens.refresh_token) {
+            console.warn("[DRIVE] No refresh_token received — user may have previously authorized this app. Revoke access and retry to get a new refresh_token.");
+          }
+        } catch (e) {
+          setError("Error de conexión al intercambiar credenciales");
+        }
       },
     });
 
-    if (tokenClient) {
-      tokenClient.requestAccessToken();
-    } else {
-      setError("La librería de Google Identity Services no se cargó. Recarga la página.");
-    }
+    codeClient.requestCode();
   }, [clientId]);
 
   // ─── Load folders when token or parent changes ────
@@ -82,7 +110,6 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
       const data = await res.json();
 
       if (!res.ok) {
-        // Token expired
         if (res.status === 401) {
           setAccessToken(null);
           setError("Sesión de Google expirada. Inicia sesión nuevamente.");
@@ -144,7 +171,6 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
 
   // ─── Confirm Selection ────────────────────────────
   const handleConfirm = () => {
-    // Use selected folder, or current parent folder
     const target = selectedFolder || breadcrumb[breadcrumb.length - 1];
     const path = breadcrumb
       .slice(1)
@@ -152,7 +178,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
       .concat(selectedFolder ? [selectedFolder.name] : [])
       .join("/");
 
-    onSelect(`Google Drive: /${path || ""}`, target.id);
+    onSelect(`Google Drive: /${path || ""}`, target.id, refreshToken);
     onClose();
   };
 
@@ -172,7 +198,6 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
             <div>
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 19.5h20L12 2zm0 4l6.9 12H5.1L12 6z" opacity="0" />
                   <path d="M7.71 3.5L1.41 14l3.18 5.5h6.36L7.71 3.5zM9.93 14H4.24l2.85-4.93L9.93 14z" fill="#4285F4" />
                   <path d="M16.29 3.5h-8.58l3.18 5.5 3.17 5.5h6.36l-4.13-11z" fill="#EA4335" />
                   <path d="M4.59 19.5h14.82l-3.18-5.5H7.77l-3.18 5.5z" fill="#FBBC04" />
@@ -199,6 +224,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
               <h4 className="text-lg font-medium text-gray-900 mb-2">Conecta tu Google Drive</h4>
               <p className="text-sm text-gray-500 mb-6 max-w-sm">
                 Inicia sesión con tu cuenta de Google para explorar tus carpetas y seleccionar el destino de los documentos.
+                El programa de escritorio usará estas credenciales para subir archivos automáticamente.
               </p>
               {error && (
                 <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm w-full max-w-sm">{error}</div>
@@ -356,6 +382,16 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 <p className="text-xs text-gray-400 mt-1">
                   Clic = seleccionar, Doble clic = abrir carpeta. Si no seleccionas ninguna, se usará la carpeta actual.
                 </p>
+                {refreshToken && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✅ Credenciales de larga duración obtenidas — el escritorio podrá subir archivos automáticamente.
+                  </p>
+                )}
+                {!refreshToken && accessToken && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ No se obtuvo refresh token — la subida automática podría requerir re-autorización.
+                  </p>
+                )}
               </div>
             </>
           )}

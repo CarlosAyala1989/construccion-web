@@ -26,13 +26,15 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const { name, cloudPath, defaultPassword } = data;
+    const { name, cloudPath, defaultPassword, cloudFolderId, cloudRefreshToken } = data;
 
     const newWorkspace = await prisma.workspace.create({
       data: {
         name,
         cloudPath,
         defaultPassword,
+        cloudFolderId: cloudFolderId || null,
+        cloudRefreshToken: cloudRefreshToken || null,
       }
     });
 

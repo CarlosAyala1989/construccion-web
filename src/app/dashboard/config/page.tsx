@@ -8,6 +8,7 @@ type Config = {
   compressionThresholdMb: number;
   deleteLocalAfterUpload: boolean;
   cloudProvider: string;
+  cloudCredentials?: string | null;
 };
 
 type NomenclatureField = {
@@ -31,6 +32,10 @@ export default function ConfigPage() {
   const [newFieldRequired, setNewFieldRequired] = useState(true);
   const [newFieldSeparator, setNewFieldSeparator] = useState("_");
 
+  // Google credentials (parsed from config.cloudCredentials JSON)
+  const [googleClientId, setGoogleClientId] = useState("");
+  const [googleClientSecret, setGoogleClientSecret] = useState("");
+
   useEffect(() => {
     fetchConfig();
     fetchNomenclatures();
@@ -39,7 +44,16 @@ export default function ConfigPage() {
   const fetchConfig = async () => {
     const res = await fetch("/api/config");
     if (res.ok) {
-      setConfig(await res.json());
+      const data = await res.json();
+      setConfig(data);
+      // Parse cloud credentials
+      if (data.cloudCredentials) {
+        try {
+          const creds = JSON.parse(data.cloudCredentials);
+          setGoogleClientId(creds.clientId || "");
+          setGoogleClientSecret(creds.clientSecret || "");
+        } catch (e) { /* ignore parse errors */ }
+      }
     }
     setIsLoading(false);
   };
@@ -64,6 +78,10 @@ export default function ConfigPage() {
         compressionThresholdMb: config.compressionThresholdMb,
         deleteLocalAfterUpload: config.deleteLocalAfterUpload,
         cloudProvider: config.cloudProvider,
+        cloudCredentials: JSON.stringify({
+          clientId: googleClientId.trim(),
+          clientSecret: googleClientSecret.trim(),
+        }),
       }),
     });
 
@@ -210,6 +228,61 @@ export default function ConfigPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Google Drive Credentials */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h4 className="text-md font-medium text-gray-900 mb-2">Credenciales de Google Drive</h4>
+          <p className="text-xs text-gray-500 mb-4">
+            Estas credenciales permiten que el programa de escritorio suba archivos a Google Drive automáticamente,
+            sin que el empleado tenga que iniciar sesión en Google.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Google Client ID</label>
+              <input
+                type="text"
+                value={googleClientId}
+                onChange={e => setGoogleClientId(e.target.value)}
+                placeholder="xxxxx.apps.googleusercontent.com"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white"
+              />
+              <p className="text-xs text-gray-400 mt-1">Se obtiene de Google Cloud Console → Credentials</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Google Client Secret</label>
+              <input
+                type="password"
+                value={googleClientSecret}
+                onChange={e => setGoogleClientSecret(e.target.value)}
+                placeholder="GOCSPX-xxxxxxxxxx"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white"
+              />
+              <p className="text-xs text-gray-400 mt-1">Necesario para que el escritorio refresque tokens automáticamente</p>
+            </div>
+
+            {googleClientId && googleClientSecret && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-xs text-green-700">
+                  ✅ Credenciales configuradas. El programa de escritorio podrá subir archivos a Google Drive usando los tokens almacenados en cada espacio de trabajo.
+                </p>
+              </div>
+            )}
+
+            {(!googleClientId || !googleClientSecret) && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-xs text-amber-700">
+                  ⚠️ Sin credenciales configuradas. El escritorio no podrá subir archivos a Google Drive automáticamente.
+                </p>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-400">
+              Nota: Las credenciales se guardan al hacer clic en &quot;Guardar Configuración&quot; en el panel de la izquierda.
+            </p>
+          </div>
         </div>
 
         {/* Nomenclatures */}

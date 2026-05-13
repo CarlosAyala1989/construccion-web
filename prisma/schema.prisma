@@ -23,15 +23,17 @@ model User {
 }
 
 model Workspace {
-  id              String           @id @default(uuid())
-  name            String
-  cloudPath       String           // e.g., "Google Drive/Contabilidad"
-  defaultPassword String           // "Secure by Default" base password
-  users           User[]           @relation("UserWorkspaces")
-  policies        SecurityPolicy[]
-  auditLogs       AuditLog[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                String           @id @default(uuid())
+  name              String
+  cloudPath         String           // e.g., "Google Drive: /Contabilidad" or "LOCAL: ~/Docs"
+  cloudFolderId     String?          // Google Drive folder ID for direct API upload
+  cloudRefreshToken String?  @db.Text // Encrypted OAuth refresh token for cloud provider
+  defaultPassword   String           // "Secure by Default" base password
+  users             User[]           @relation("UserWorkspaces")
+  policies          SecurityPolicy[]
+  auditLogs         AuditLog[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 model SecurityPolicy {

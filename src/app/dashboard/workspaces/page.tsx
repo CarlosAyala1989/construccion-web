@@ -30,6 +30,7 @@ export default function WorkspacesPage() {
   const [name, setName] = useState("");
   const [cloudPath, setCloudPath] = useState("");
   const [cloudFolderId, setCloudFolderId] = useState("");
+  const [cloudRefreshToken, setCloudRefreshToken] = useState("");
   const [defaultPassword, setDefaultPassword] = useState("");
 
   // Folder Picker Modal State
@@ -68,13 +69,20 @@ export default function WorkspacesPage() {
     const res = await fetch("/api/workspaces", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, cloudPath, defaultPassword }),
+      body: JSON.stringify({
+        name,
+        cloudPath,
+        defaultPassword,
+        cloudFolderId: cloudFolderId || null,
+        cloudRefreshToken: cloudRefreshToken || null,
+      }),
     });
 
     if (res.ok) {
       setName("");
       setCloudPath("");
       setCloudFolderId("");
+      setCloudRefreshToken("");
       setDefaultPassword("");
       fetchWorkspaces();
     } else {
@@ -135,6 +143,7 @@ export default function WorkspacesPage() {
     }
     setCloudPath(`LOCAL: ${path}`);
     setCloudFolderId("");
+    setCloudRefreshToken("");
     setShowFolderPicker(false);
   };
 
@@ -146,12 +155,14 @@ export default function WorkspacesPage() {
     }
     setCloudPath(`Dropbox: ${path}`);
     setCloudFolderId("");
+    setCloudRefreshToken("");
     setShowFolderPicker(false);
   };
 
-  const handleDriveSelect = (path: string, folderId: string) => {
+  const handleDriveSelect = (path: string, folderId: string, driveRefreshToken: string | null) => {
     setCloudPath(path);
     setCloudFolderId(folderId);
+    setCloudRefreshToken(driveRefreshToken || "");
     setShowFolderPicker(false);
     setShowDriveBrowser(false);
   };
