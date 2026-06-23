@@ -10,7 +10,7 @@ import {
 } from "@/lib/document-access";
 import { getWorkspaceProvider, readLocalPdf } from "@/lib/document-storage";
 import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus } from "@/lib/google-drive";
-import { renderPdfImagesForViewing } from "@/lib/pdf-server";
+import { getPdfProcessingErrorStatus, renderPdfImagesForViewing } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -104,6 +104,16 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+    const errorCode = error instanceof Error && "code" in error ? String(error.code) : undefined;
+
+    console.error("[documents/view] failed", {
+      workspaceId: workspace.id,
+      fileId,
+      error: errorMessage,
+      code: errorCode,
+    });
+
     await prisma.auditLog.create({
       data: {
         userId: user.id,
@@ -111,7 +121,8 @@ export async function GET(request: NextRequest) {
         action: "DOCUMENT_VIEW_FAILED",
         details: JSON.stringify({
           fileId,
-          error: error instanceof Error ? error.message : "Error desconocido",
+          error: errorMessage,
+          code: errorCode,
         }),
         status: "FAILURE",
         workspaceId: workspace.id,
@@ -119,8 +130,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al visualizar documento" },
-      { status: getGoogleDriveErrorStatus(error) }
+      { error: errorMessage || "Error al visualizar documento" },
+      { status: getGoogleDriveErrorStatus(error, getPdfProcessingErrorStatus(error)) }
     );
   }
 }
