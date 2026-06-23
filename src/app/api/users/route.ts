@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import {
+  ACCESS_ROLE_DESKTOP_SCANNER,
+  ACCESS_ROLE_WEB_VIEWER,
+  DOCUMENT_ACCESS_GLOBAL,
+  DOCUMENT_ACCESS_PASSWORD_SCOPED,
+  replaceUserPasswordGrants,
+} from "@/lib/document-access";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,7 +20,8 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     include: {
-      workspaces: true
+      workspaces: true,
+      documentPasswordGrants: true,
     },
     orderBy: { createdAt: "desc" }
   });
@@ -21,6 +29,7 @@ export async function GET() {
   // Return users without passwords
   const safeUsers = users.map(user => {
     const { password, ...safeUser } = user;
+    void password;
     return safeUser;
   });
 
@@ -36,7 +45,19 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const { name, email, password, role, workspaceIds } = data;
+    const {
+      name,
+      email,
+      password,
+      role,
+      accessRole,
+      workspaceIds = [],
+      documentAccessMode,
+      passwordGrantKeys = [],
+    } = data;
+    const nextAccessRole = accessRole === ACCESS_ROLE_WEB_VIEWER ? ACCESS_ROLE_WEB_VIEWER : ACCESS_ROLE_DESKTOP_SCANNER;
+    const accessMode =
+      documentAccessMode === DOCUMENT_ACCESS_GLOBAL ? DOCUMENT_ACCESS_GLOBAL : DOCUMENT_ACCESS_PASSWORD_SCOPED;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -51,13 +72,28 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: role || "EMPLOYEE",
+        accessRole: nextAccessRole,
+        documentAccessMode: accessMode,
         workspaces: {
           connect: workspaceIds?.map((id: string) => ({ id })) || []
         }
       },
       include: {
-        workspaces: true
+        workspaces: true,
+        documentPasswordGrants: true,
       }
+    });
+
+    if (nextAccessRole === ACCESS_ROLE_WEB_VIEWER && accessMode === DOCUMENT_ACCESS_PASSWORD_SCOPED) {
+      await replaceUserPasswordGrants(newUser.id, workspaceIds, passwordGrantKeys);
+    }
+
+    const userWithGrants = await prisma.user.findUnique({
+      where: { id: newUser.id },
+      include: {
+        workspaces: true,
+        documentPasswordGrants: true,
+      },
     });
 
     // Audit log for user creation (Zero Trust onboarding)
@@ -66,14 +102,15 @@ export async function POST(request: Request) {
         userId: session.user.id,
         userName: session.user.name || "Admin",
         action: "USER_CREATED",
-        details: `Empleado creado: ${name} (${email}), Rol: ${role || "EMPLOYEE"}, Espacios: ${workspaceIds?.length || 0}`,
+        details: `Empleado creado: ${name} (${email}), Rol: ${role || "EMPLOYEE"}, Tipo: ${nextAccessRole}, Espacios: ${workspaceIds?.length || 0}, Visor: ${accessMode}`,
         status: "SUCCESS",
       }
     });
 
-    const { password: _, ...safeUser } = newUser;
+    const { password: createdPassword, ...safeUser } = userWithGrants || newUser;
+    void createdPassword;
     return NextResponse.json(safeUser, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al crear usuario" }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -26,7 +26,8 @@ export default function LoginPage() {
       if (res?.error) {
         setError(res.error);
       } else {
-        router.push("/dashboard");
+        const session = await getSession();
+        router.push(session?.user?.role === "ADMIN" ? "/dashboard" : "/documents");
       }
     } catch (err) {
       setError("Error inesperado al iniciar sesión.");

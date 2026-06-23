@@ -48,6 +48,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             Resumen
           </Link>
           <Link
+            href="/documents"
+            className={`block px-6 py-2 text-sm font-medium ${
+              pathname === "/documents"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            Documentos Web
+          </Link>
+          <Link
             href="/dashboard/workspaces"
             className={`block px-6 py-2 text-sm font-medium ${
               pathname === "/dashboard/workspaces"

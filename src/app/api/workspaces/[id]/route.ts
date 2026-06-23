@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { ACCESS_ROLE_WEB_VIEWER, DOCUMENT_ACCESS_PASSWORD_SCOPED, defaultCredentialKey } from "@/lib/document-access";
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -30,6 +31,42 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       }
     });
 
+    await prisma.documentPasswordGrant.deleteMany({
+      where: {
+        workspaceId: id,
+        userId: { notIn: userIds },
+      },
+    });
+
+    const scopedUsers = await prisma.user.findMany({
+      where: {
+        id: { in: userIds },
+        accessRole: ACCESS_ROLE_WEB_VIEWER,
+        documentAccessMode: DOCUMENT_ACCESS_PASSWORD_SCOPED,
+      },
+      include: {
+        documentPasswordGrants: {
+          where: { workspaceId: id },
+        },
+      },
+    });
+
+    await Promise.all(
+      scopedUsers
+        .filter(user => user.documentPasswordGrants.length === 0)
+        .map(user =>
+          prisma.documentPasswordGrant.create({
+            data: {
+              userId: user.id,
+              workspaceId: id,
+              credentialKey: defaultCredentialKey(id),
+              sourceType: "DEFAULT",
+              label: `Predeterminada de ${updatedWorkspace.name}`,
+            },
+          })
+        )
+    );
+
     // Audit log for permission change
     await prisma.auditLog.create({
       data: {
@@ -43,7 +80,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     });
 
     return NextResponse.json(updatedWorkspace);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al asignar usuarios al espacio de trabajo" }, { status: 500 });
   }
 }

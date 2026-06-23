@@ -9,7 +9,10 @@ export interface User {
   email: string;
   role: "ADMIN" | "EMPLOYEE";
   isActive: boolean;
+  accessRole: "WEB_VIEWER" | "DESKTOP_SCANNER";
+  documentAccessMode: "GLOBAL" | "PASSWORD_SCOPED";
   workspaces: Workspace[];
+  documentPasswordGrants?: DocumentPasswordGrant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +24,7 @@ export interface Workspace {
   defaultPassword: string;
   users?: User[];
   policies?: SecurityPolicy[];
+  documentPasswordGrants?: DocumentPasswordGrant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -33,8 +37,20 @@ export interface SecurityPolicy {
   priority: number;
   workspaceId?: string | null;
   workspace?: Workspace | null;
+  documentPasswordGrants?: DocumentPasswordGrant[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DocumentPasswordGrant {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  securityPolicyId?: string | null;
+  credentialKey: string;
+  sourceType: "DEFAULT" | "POLICY";
+  label: string;
+  createdAt: string;
 }
 
 export interface AuditLog {

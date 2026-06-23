@@ -28,6 +28,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Esta cuenta ha sido desactivada.");
         }
 
+        if (user.role !== "ADMIN" && user.accessRole === "DESKTOP_SCANNER") {
+          throw new Error("Esta cuenta es solo para la aplicación de escritorio.");
+        }
+
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
@@ -39,6 +43,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          accessRole: user.accessRole,
         };
       }
     })
@@ -52,13 +57,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.accessRole = user.accessRole;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.accessRole = token.accessRole;
       }
       return session;
     }
