@@ -9,7 +9,7 @@ import {
   getCandidatePasswordsForUser,
 } from "@/lib/document-access";
 import { getWorkspaceProvider, readLocalPdf } from "@/lib/document-storage";
-import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata } from "@/lib/google-drive";
+import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus } from "@/lib/google-drive";
 import { renderPdfImagesForViewing } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al visualizar documento" },
-      { status: 500 }
+      { status: getGoogleDriveErrorStatus(error) }
     );
   }
 }

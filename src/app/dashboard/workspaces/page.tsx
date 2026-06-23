@@ -15,16 +15,28 @@ type Workspace = {
   id: string;
   name: string;
   cloudPath: string;
+  cloudFolderId?: string | null;
+  cloudRefreshToken?: string | null;
   defaultPassword: string;
   users?: User[];
 };
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+type UserApiItem = User & {
+  role: string;
+  workspaces?: Array<Pick<Workspace, "id">>;
+};
+
+type DriveOauthConfig = {
+  clientId?: string;
+  isConfigured?: boolean;
+};
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [googleClientId, setGoogleClientId] = useState("");
+  const [isGoogleOauthConfigured, setIsGoogleOauthConfigured] = useState(false);
 
   // Form State
   const [name, setName] = useState("");
@@ -41,28 +53,42 @@ export default function WorkspacesPage() {
 
   // Google Drive Browser Modal
   const [showDriveBrowser, setShowDriveBrowser] = useState(false);
+  const [reconnectingWorkspace, setReconnectingWorkspace] = useState<Workspace | null>(null);
+  const [isReconnectingDrive, setIsReconnectingDrive] = useState(false);
 
   // Assignment Modal State
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchWorkspaces();
-    fetchUsers();
-  }, []);
-
   const fetchWorkspaces = async () => {
     const res = await fetch("/api/workspaces");
-    const data = await res.json();
+    const data = await res.json() as Workspace[];
     setWorkspaces(data);
     setIsLoading(false);
   };
 
   const fetchUsers = async () => {
     const res = await fetch("/api/users");
-    const data = await res.json();
-    setAllUsers(data.filter((u: any) => u.role !== "ADMIN"));
+    const data = await res.json() as UserApiItem[];
+    setAllUsers(data.filter(user => user.role !== "ADMIN"));
   };
+
+  const fetchDriveOauthConfig = async () => {
+    const res = await fetch("/api/drive/oauth-config");
+    if (!res.ok) return;
+
+    const data = await res.json() as DriveOauthConfig;
+    setGoogleClientId(data.clientId || "");
+    setIsGoogleOauthConfigured(Boolean(data.isConfigured));
+  };
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      fetchWorkspaces();
+      fetchUsers();
+      fetchDriveOauthConfig();
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,10 +120,10 @@ export default function WorkspacesPage() {
     setEditingWorkspace(workspace);
     fetch(`/api/users`)
       .then(res => res.json())
-      .then(data => {
+      .then((data: UserApiItem[]) => {
         const assignedUserIds = data
-          .filter((user: any) => user.workspaces.some((ws: any) => ws.id === workspace.id))
-          .map((user: any) => user.id);
+          .filter(user => user.workspaces?.some(ws => ws.id === workspace.id))
+          .map(user => user.id);
         setSelectedUserIds(assignedUserIds);
       });
   };
@@ -160,11 +186,57 @@ export default function WorkspacesPage() {
   };
 
   const handleDriveSelect = (path: string, folderId: string, driveRefreshToken: string | null) => {
+    if (!driveRefreshToken) {
+      alert("Google no devolvió refresh token. Revoca el acceso de la app en tu cuenta Google y vuelve a conectar Drive.");
+      return;
+    }
+
+    if (reconnectingWorkspace) {
+      reconnectDriveWorkspace(reconnectingWorkspace.id, path, folderId, driveRefreshToken);
+      return;
+    }
+
     setCloudPath(path);
     setCloudFolderId(folderId);
-    setCloudRefreshToken(driveRefreshToken || "");
+    setCloudRefreshToken(driveRefreshToken);
     setShowFolderPicker(false);
     setShowDriveBrowser(false);
+  };
+
+  const openDriveReconnect = (workspace: Workspace) => {
+    setReconnectingWorkspace(workspace);
+    setShowDriveBrowser(true);
+  };
+
+  const reconnectDriveWorkspace = async (workspaceId: string, path: string, folderId: string, driveRefreshToken: string) => {
+    setIsReconnectingDrive(true);
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cloudPath: path,
+          cloudFolderId: folderId,
+          cloudRefreshToken: driveRefreshToken,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || "No se pudo reconectar Google Drive.");
+        return;
+      }
+
+      setReconnectingWorkspace(null);
+      setShowDriveBrowser(false);
+      fetchWorkspaces();
+      alert("Google Drive reconectado correctamente.");
+    } catch {
+      alert("No se pudo reconectar Google Drive.");
+    } finally {
+      setIsReconnectingDrive(false);
+    }
   };
 
   // Common local folder suggestions
@@ -198,9 +270,12 @@ export default function WorkspacesPage() {
       {/* ── Google Drive Browser Modal ────────────── */}
       <DriveFolderBrowser
         isOpen={showDriveBrowser}
-        onClose={() => setShowDriveBrowser(false)}
+        onClose={() => {
+          setShowDriveBrowser(false);
+          setReconnectingWorkspace(null);
+        }}
         onSelect={handleDriveSelect}
-        clientId={GOOGLE_CLIENT_ID}
+        clientId={googleClientId}
       />
 
       {/* ── Folder Picker Modal ──────────────────── */}
@@ -322,12 +397,11 @@ export default function WorkspacesPage() {
                     <span className="text-blue-500 text-xl ml-auto">→</span>
                   </button>
 
-                  {!GOOGLE_CLIENT_ID && (
+                  {!isGoogleOauthConfigured && (
                     <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                       <p className="text-xs text-amber-800">
-                        ⚠️ <strong>Configuración pendiente:</strong> Para usar Google Drive, configura 
-                        <code className="bg-amber-100 px-1 rounded mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> 
-                        en tu archivo <code className="bg-amber-100 px-1 rounded">.env</code>
+                        ⚠️ <strong>Configuración pendiente:</strong> Para usar Google Drive, configura las credenciales OAuth
+                        en Configuración o en las variables de entorno.
                       </p>
                     </div>
                   )}
@@ -563,6 +637,15 @@ export default function WorkspacesPage() {
                       >
                         Asignar Usuarios
                       </button>
+                      {(ws.cloudPath.startsWith("Google Drive:") || ws.cloudPath.startsWith("Drive:")) && (
+                        <button
+                          onClick={() => openDriveReconnect(ws)}
+                          disabled={isReconnectingDrive}
+                          className="ml-2 text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md disabled:opacity-50"
+                        >
+                          {isReconnectingDrive && reconnectingWorkspace?.id === ws.id ? "Reconectando..." : "Reconectar Drive"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

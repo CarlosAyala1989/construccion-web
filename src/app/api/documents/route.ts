@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { canUseWebDocuments, getActiveRequestUser, getAuthorizedWorkspace } from "@/lib/document-access";
 import { getWorkspaceProvider, listLocalPdfs } from "@/lib/document-storage";
-import { getDriveAccessToken, listDrivePdfs } from "@/lib/google-drive";
+import { getDriveAccessToken, getGoogleDriveErrorStatus, listDrivePdfs } from "@/lib/google-drive";
 
 export const runtime = "nodejs";
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al listar documentos" },
-      { status: 500 }
+      { status: getGoogleDriveErrorStatus(error) }
     );
   }
 }

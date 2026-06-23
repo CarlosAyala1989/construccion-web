@@ -1,21 +1,42 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { getGoogleCredentials, readGoogleError } from "@/lib/google-drive";
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+export const runtime = "nodejs";
 
 // POST /api/drive/token — Exchange authorization code for refresh token
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user?.role !== "ADMIN") {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
   try {
+    if (request.headers.get("x-requested-with")?.toLowerCase() !== "xmlhttprequest") {
+      return NextResponse.json({ error: "Solicitud OAuth inválida" }, { status: 400 });
+    }
+
     const body = await request.json();
     const { code, redirectUri } = body;
+    const credentials = await getGoogleCredentials();
+    const requestOrigin = request.headers.get("origin") || new URL(request.url).origin;
+    const tokenRedirectUri = typeof redirectUri === "string" && redirectUri.trim()
+      ? redirectUri.trim()
+      : requestOrigin;
 
     if (!code) {
       return NextResponse.json({ error: "Código de autorización requerido" }, { status: 400 });
     }
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    if (tokenRedirectUri !== requestOrigin) {
+      return NextResponse.json({ error: "Origen OAuth inválido" }, { status: 400 });
+    }
+
+    if (!credentials.clientId || !credentials.clientSecret) {
       return NextResponse.json(
-        { error: "GOOGLE_CLIENT_SECRET no configurado en el servidor" },
+        { error: "Credenciales OAuth de Google Drive no configuradas en el servidor" },
         { status: 500 }
       );
     }
@@ -26,17 +47,17 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: redirectUri || "postmessage",
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret,
+        redirect_uri: tokenRedirectUri,
         grant_type: "authorization_code",
       }),
     });
 
     if (!tokenRes.ok) {
-      const err = await tokenRes.json();
+      const err = await readGoogleError(tokenRes);
       return NextResponse.json(
-        { error: err.error_description || "Error al obtener tokens" },
+        { error: err.error_description || err.message || "Error al obtener tokens" },
         { status: tokenRes.status }
       );
     }
@@ -48,7 +69,7 @@ export async function POST(request: Request) {
       refresh_token: tokens.refresh_token || null,
       expires_in: tokens.expires_in,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

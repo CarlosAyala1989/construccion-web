@@ -20,6 +20,47 @@ type Props = {
   clientId: string;
 };
 
+type GoogleCodeResponse = {
+  code?: string;
+  error?: string;
+};
+
+type GoogleCodeClient = {
+  requestCode: () => void;
+};
+
+type GoogleOAuth2 = {
+  initCodeClient: (config: {
+    client_id: string;
+    scope: string;
+    include_granted_scopes: boolean;
+    select_account: boolean;
+    ux_mode: "popup";
+    callback: (response: GoogleCodeResponse) => void | Promise<void>;
+  }) => GoogleCodeClient;
+};
+
+type GoogleWindow = Window & {
+  google?: {
+    accounts?: {
+      oauth2?: GoogleOAuth2;
+    };
+  };
+};
+
+type TokenExchangeResponse = {
+  access_token?: string;
+  refresh_token?: string | null;
+};
+
+type ApiErrorResponse = {
+  error?: string;
+};
+
+type DriveFoldersResponse = ApiErrorResponse & {
+  folders?: DriveFolder[];
+};
+
 // ─── Component ────────────────────────────────────────
 export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId }: Props) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -37,69 +78,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
 
   const currentParentId = breadcrumb[breadcrumb.length - 1].id;
 
-  // ─── Google Auth (Authorization Code Flow for refresh token) ──
-  const handleGoogleAuth = useCallback(() => {
-    if (!clientId) {
-      setError("Falta configurar NEXT_PUBLIC_GOOGLE_CLIENT_ID en el archivo .env");
-      return;
-    }
-
-    const gis = (window as any).google?.accounts?.oauth2;
-    if (!gis) {
-      setError("La librería de Google Identity Services no se cargó. Recarga la página.");
-      return;
-    }
-
-    // Use code client (authorization code flow) to get a refresh_token
-    const codeClient = gis.initCodeClient({
-      client_id: clientId,
-      scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
-      ux_mode: "popup",
-      callback: async (response: any) => {
-        if (response.error) {
-          setError(`Error de autenticación: ${response.error}`);
-          return;
-        }
-
-        // Exchange the authorization code for tokens on our server
-        try {
-          const tokenRes = await fetch("/api/drive/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: response.code }),
-          });
-
-          if (!tokenRes.ok) {
-            const errData = await tokenRes.json();
-            setError(errData.error || "Error al obtener credenciales");
-            return;
-          }
-
-          const tokens = await tokenRes.json();
-          setAccessToken(tokens.access_token);
-          setRefreshToken(tokens.refresh_token || null);
-          setError("");
-
-          if (!tokens.refresh_token) {
-            console.warn("[DRIVE] No refresh_token received — user may have previously authorized this app. Revoke access and retry to get a new refresh_token.");
-          }
-        } catch (e) {
-          setError("Error de conexión al intercambiar credenciales");
-        }
-      },
-    });
-
-    codeClient.requestCode();
-  }, [clientId]);
-
-  // ─── Load folders when token or parent changes ────
-  useEffect(() => {
-    if (accessToken && isOpen) {
-      loadFolders(currentParentId);
-    }
-  }, [accessToken, currentParentId, isOpen]);
-
-  const loadFolders = async (parentId: string) => {
+  const loadFolders = useCallback(async (parentId: string) => {
     if (!accessToken) return;
     setIsLoading(true);
     setError("");
@@ -107,7 +86,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
 
     try {
       const res = await fetch(`/api/drive/folders?parentId=${parentId}&token=${accessToken}`);
-      const data = await res.json();
+      const data = await res.json() as DriveFoldersResponse;
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -120,12 +99,93 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
       }
 
       setFolders(data.folders || []);
-    } catch (e) {
+    } catch {
       setError("Error de conexión");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [accessToken]);
+
+  // ─── Google Auth (Authorization Code Flow for refresh token) ──
+  const handleGoogleAuth = useCallback(() => {
+    if (!clientId) {
+      setError("Falta configurar el Client ID OAuth de Google Drive.");
+      return;
+    }
+
+    const gis = (window as GoogleWindow).google?.accounts?.oauth2;
+    if (!gis) {
+      setError("La librería de Google Identity Services no se cargó. Recarga la página.");
+      return;
+    }
+
+    // Use code client (authorization code flow) to get a refresh_token
+    const codeClient = gis.initCodeClient({
+      client_id: clientId,
+      scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
+      include_granted_scopes: true,
+      select_account: true,
+      ux_mode: "popup",
+      callback: async (response: GoogleCodeResponse) => {
+        if (response.error) {
+          setError(`Error de autenticación: ${response.error}`);
+          return;
+        }
+
+        if (!response.code) {
+          setError("Google no devolvió código de autorización.");
+          return;
+        }
+
+        // Exchange the authorization code for tokens on our server
+        try {
+          const tokenRes = await fetch("/api/drive/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Requested-With": "XmlHttpRequest",
+            },
+            body: JSON.stringify({
+              code: response.code,
+              redirectUri: window.location.origin,
+            }),
+          });
+
+          if (!tokenRes.ok) {
+            const errData = await tokenRes.json() as ApiErrorResponse;
+            setError(errData.error || "Error al obtener credenciales");
+            return;
+          }
+
+          const tokens = await tokenRes.json() as TokenExchangeResponse;
+
+          if (!tokens.access_token) {
+            setError("Google no devolvió access token.");
+            return;
+          }
+
+          setAccessToken(tokens.access_token);
+          setRefreshToken(tokens.refresh_token || null);
+          setError("");
+
+          if (!tokens.refresh_token) {
+            console.warn("[DRIVE] No refresh_token received — user may have previously authorized this app. Revoke access and retry to get a new refresh_token.");
+          }
+        } catch {
+          setError("Error de conexión al intercambiar credenciales");
+        }
+      },
+    });
+
+    codeClient.requestCode();
+  }, [clientId]);
+
+  // ─── Load folders when token or parent changes ────
+  useEffect(() => {
+    if (accessToken && isOpen) {
+      void Promise.resolve().then(() => loadFolders(currentParentId));
+    }
+  }, [accessToken, currentParentId, isOpen, loadFolders]);
 
   // ─── Navigation ───────────────────────────────────
   const navigateToFolder = (folder: DriveFolder) => {
@@ -162,7 +222,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
         const data = await res.json();
         setError(data.error || "Error al crear carpeta");
       }
-    } catch (e) {
+    } catch {
       setError("Error al crear carpeta");
     } finally {
       setIsCreating(false);
@@ -171,6 +231,11 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
 
   // ─── Confirm Selection ────────────────────────────
   const handleConfirm = () => {
+    if (!refreshToken) {
+      setError("Google no devolvió credenciales persistentes. Revoca el acceso de esta app en tu cuenta Google y vuelve a conectar Drive.");
+      return;
+    }
+
     const target = selectedFolder || breadcrumb[breadcrumb.length - 1];
     const path = breadcrumb
       .slice(1)
@@ -408,7 +473,8 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
           {accessToken && (
             <button
               onClick={handleConfirm}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm"
+              disabled={!refreshToken}
+              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm disabled:bg-blue-300"
             >
               ✓ Seleccionar esta carpeta
             </button>

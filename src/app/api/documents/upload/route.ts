@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getActiveRequestUser, getAuthorizedWorkspace, getUploadCredentialForUser } from "@/lib/document-access";
 import { getWorkspaceProvider, sanitizePdfFileName, writeLocalPdf } from "@/lib/document-storage";
-import { getDriveAccessToken, uploadDrivePdf } from "@/lib/google-drive";
+import { getDriveAccessToken, getGoogleDriveErrorStatus, uploadDrivePdf } from "@/lib/google-drive";
 import { encryptPdfForStorage } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al subir documento" },
-      { status: 500 }
+      { status: getGoogleDriveErrorStatus(error) }
     );
   }
 }
