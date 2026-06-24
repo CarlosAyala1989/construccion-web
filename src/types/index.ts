@@ -11,6 +11,8 @@ export interface User {
   isActive: boolean;
   accessRole: "WEB_VIEWER" | "DESKTOP_SCANNER";
   documentAccessMode: "GLOBAL" | "PASSWORD_SCOPED";
+  twoFactorEnabled: boolean;
+  twoFactorConfirmedAt?: string | null;
   workspaces: Workspace[];
   documentPasswordGrants?: DocumentPasswordGrant[];
   createdAt: string;

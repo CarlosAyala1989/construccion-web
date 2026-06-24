@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcrypt";
+import { verifyRecaptchaToken } from "./recaptcha";
+import { verifyTotpCode } from "./totp";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,11 +11,18 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email", placeholder: "admin@empresa.com" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        captchaToken: { label: "CAPTCHA", type: "text" },
+        totpCode: { label: "Código Authenticator", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Credenciales inválidas.");
+        }
+
+        const captcha = await verifyRecaptchaToken(credentials.captchaToken);
+        if (!captcha.ok) {
+          throw new Error(captcha.message || "CAPTCHA inválido.");
         }
 
         const user = await prisma.user.findUnique({
@@ -36,6 +45,18 @@ export const authOptions: NextAuthOptions = {
 
         if (!isPasswordValid) {
           throw new Error("Contraseña incorrecta.");
+        }
+
+        const authenticatorRequired = process.env.AUTHENTICATOR_REQUIRED === "true";
+
+        if (user.twoFactorEnabled) {
+          const isTotpValid = await verifyTotpCode(user.twoFactorSecret, credentials.totpCode);
+
+          if (!isTotpValid) {
+            throw new Error("Código de Authenticator inválido o vencido.");
+          }
+        } else if (authenticatorRequired) {
+          throw new Error("Authenticator es obligatorio para esta cuenta. Solicita al administrador activarlo.");
         }
 
         return {

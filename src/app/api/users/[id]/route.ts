@@ -53,6 +53,8 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         isActive: true,
         accessRole: true,
         documentAccessMode: true,
+        twoFactorEnabled: true,
+        twoFactorConfirmedAt: true,
         workspaces: true,
         documentPasswordGrants: true,
       }
@@ -85,6 +87,8 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         isActive: true,
         accessRole: true,
         documentAccessMode: true,
+        twoFactorEnabled: true,
+        twoFactorConfirmedAt: true,
         workspaces: true,
         documentPasswordGrants: true,
       },

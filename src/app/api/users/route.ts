@@ -28,8 +28,9 @@ export async function GET() {
   
   // Return users without passwords
   const safeUsers = users.map(user => {
-    const { password, ...safeUser } = user;
+    const { password, twoFactorSecret, ...safeUser } = user;
     void password;
+    void twoFactorSecret;
     return safeUser;
   });
 
@@ -107,8 +108,9 @@ export async function POST(request: Request) {
       }
     });
 
-    const { password: createdPassword, ...safeUser } = userWithGrants || newUser;
+    const { password: createdPassword, twoFactorSecret: createdTwoFactorSecret, ...safeUser } = userWithGrants || newUser;
     void createdPassword;
+    void createdTwoFactorSecret;
     return NextResponse.json(safeUser, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Error al crear usuario" }, { status: 500 });

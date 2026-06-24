@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 type Workspace = {
   id: string;
@@ -33,8 +34,18 @@ type User = {
   isActive: boolean;
   accessRole: "WEB_VIEWER" | "DESKTOP_SCANNER";
   documentAccessMode: "GLOBAL" | "PASSWORD_SCOPED";
+  twoFactorEnabled: boolean;
+  twoFactorConfirmedAt: string | null;
   workspaces: Workspace[];
   documentPasswordGrants: PasswordGrant[];
+};
+
+type AuthenticatorSetup = {
+  email: string;
+  twoFactorEnabled: boolean;
+  secret: string;
+  otpauthUrl: string;
+  qrCodeDataUrl: string;
 };
 
 export default function UsersPage() {
@@ -66,6 +77,13 @@ export default function UsersPage() {
   const [editGrantKeys, setEditGrantKeys] = useState<string[]>([]);
   const [editPasswordOptions, setEditPasswordOptions] = useState<PasswordOption[]>([]);
   const [isSavingAccess, setIsSavingAccess] = useState(false);
+
+  // Authenticator Modal
+  const [authenticatorUser, setAuthenticatorUser] = useState<User | null>(null);
+  const [authenticatorSetup, setAuthenticatorSetup] = useState<AuthenticatorSetup | null>(null);
+  const [authenticatorCode, setAuthenticatorCode] = useState("");
+  const [authenticatorMessage, setAuthenticatorMessage] = useState("");
+  const [isAuthenticatorLoading, setIsAuthenticatorLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -198,6 +216,85 @@ export default function UsersPage() {
     setEditAccessRole(user.accessRole || "DESKTOP_SCANNER");
     setEditAccessMode(user.documentAccessMode || "PASSWORD_SCOPED");
     setEditGrantKeys(user.documentPasswordGrants?.map(grant => grant.credentialKey) || []);
+  };
+
+  const openAuthenticatorModal = async (user: User) => {
+    setAuthenticatorUser(user);
+    setAuthenticatorSetup(null);
+    setAuthenticatorCode("");
+    setAuthenticatorMessage("");
+
+    if (!user.twoFactorEnabled) {
+      await startAuthenticatorSetup(user.id);
+    }
+  };
+
+  const startAuthenticatorSetup = async (userId: string) => {
+    setIsAuthenticatorLoading(true);
+    setAuthenticatorMessage("");
+    setAuthenticatorCode("");
+
+    const res = await fetch(`/api/users/${userId}/authenticator`, {
+      method: "POST",
+    });
+    const data = await res.json();
+
+    setIsAuthenticatorLoading(false);
+    if (res.ok) {
+      setAuthenticatorSetup(data);
+    } else {
+      setAuthenticatorMessage(data.error || "Error al generar Authenticator.");
+    }
+  };
+
+  const confirmAuthenticatorSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authenticatorUser) return;
+
+    setIsAuthenticatorLoading(true);
+    setAuthenticatorMessage("");
+
+    const res = await fetch(`/api/users/${authenticatorUser.id}/authenticator`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: authenticatorCode }),
+    });
+    const data = await res.json();
+
+    setIsAuthenticatorLoading(false);
+    if (res.ok) {
+      setAuthenticatorMessage("Authenticator activado correctamente.");
+      setAuthenticatorSetup(null);
+      setAuthenticatorCode("");
+      fetchUsers();
+      setAuthenticatorUser(prev => prev ? { ...prev, twoFactorEnabled: true, twoFactorConfirmedAt: data.twoFactorConfirmedAt } : prev);
+    } else {
+      setAuthenticatorMessage(data.error || "Código inválido.");
+    }
+  };
+
+  const disableAuthenticator = async () => {
+    if (!authenticatorUser) return;
+    if (!confirm(`¿Deseas desactivar Authenticator para ${authenticatorUser.name}?`)) return;
+
+    setIsAuthenticatorLoading(true);
+    setAuthenticatorMessage("");
+
+    const res = await fetch(`/api/users/${authenticatorUser.id}/authenticator`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+
+    setIsAuthenticatorLoading(false);
+    if (res.ok) {
+      setAuthenticatorMessage("Authenticator desactivado.");
+      setAuthenticatorSetup(null);
+      setAuthenticatorCode("");
+      fetchUsers();
+      setAuthenticatorUser(prev => prev ? { ...prev, twoFactorEnabled: false, twoFactorConfirmedAt: null } : prev);
+    } else {
+      setAuthenticatorMessage(data.error || "Error al desactivar Authenticator.");
+    }
   };
 
   const handleSaveAccess = async (e: React.FormEvent) => {
@@ -417,6 +514,135 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Authenticator Modal */}
+      {authenticatorUser && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl max-h-[88vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Authenticator
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Usuario: <strong>{authenticatorUser.name}</strong>
+            </p>
+
+            <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              Estado actual:{" "}
+              <span className={authenticatorUser.twoFactorEnabled ? "font-semibold text-green-700" : "font-semibold text-amber-700"}>
+                {authenticatorUser.twoFactorEnabled ? "Activo" : "Pendiente de activación"}
+              </span>
+            </div>
+
+            {authenticatorMessage && (
+              <div className={`mb-4 rounded-md p-3 text-sm ${authenticatorMessage.includes("Error") || authenticatorMessage.includes("inválido") ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+                {authenticatorMessage}
+              </div>
+            )}
+
+            {isAuthenticatorLoading && (
+              <p className="mb-4 text-sm text-gray-500">Procesando...</p>
+            )}
+
+            {authenticatorSetup ? (
+              <form onSubmit={confirmAuthenticatorSetup} className="space-y-4">
+                <div className="flex justify-center">
+                  <Image
+                    src={authenticatorSetup.qrCodeDataUrl}
+                    alt={`QR Authenticator para ${authenticatorSetup.email}`}
+                    width={240}
+                    height={240}
+                    unoptimized
+                    className="h-60 w-60 rounded border border-gray-200 bg-white p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Clave manual</label>
+                  <div className="mt-1 break-all rounded-md border border-gray-200 bg-gray-50 p-2 font-mono text-xs text-gray-800">
+                    {authenticatorSetup.secret}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Código de verificación</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    required
+                    value={authenticatorCode}
+                    onChange={e => setAuthenticatorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900 bg-white"
+                    placeholder="123456"
+                  />
+                </div>
+                <div className="flex justify-between gap-3">
+                  {authenticatorUser.twoFactorEnabled && (
+                    <button
+                      type="button"
+                      onClick={disableAuthenticator}
+                      disabled={isAuthenticatorLoading}
+                      className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-200 rounded hover:bg-red-50 disabled:text-red-300"
+                    >
+                      Desactivar
+                    </button>
+                  )}
+                  <div className="ml-auto flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAuthenticatorUser(null)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      Cerrar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isAuthenticatorLoading}
+                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+                    >
+                      Confirmar código
+                    </button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Genera un QR para vincular esta cuenta con Google Authenticator o Microsoft Authenticator.
+                </p>
+                <div className="flex justify-between gap-3">
+                  {authenticatorUser.twoFactorEnabled && (
+                    <button
+                      type="button"
+                      onClick={disableAuthenticator}
+                      disabled={isAuthenticatorLoading}
+                      className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-200 rounded hover:bg-red-50 disabled:text-red-300"
+                    >
+                      Desactivar
+                    </button>
+                  )}
+                  <div className="ml-auto flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAuthenticatorUser(null)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      Cerrar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startAuthenticatorSetup(authenticatorUser.id)}
+                      disabled={isAuthenticatorLoading}
+                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+                    >
+                      Generar QR
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <h3 className="text-lg font-medium text-gray-900">Gestión de Empleados y Seguridad (Zero Trust)</h3>
         <p className="mt-2 text-sm text-gray-500">
@@ -556,6 +782,9 @@ export default function UsersPage() {
                         ? user.documentAccessMode === "GLOBAL" ? "Acceso global" : `${user.documentPasswordGrants?.length || 0} contraseña(s)`
                         : "Sin acceso web a documentos"}
                     </div>
+                    <div className={`text-xs mt-1 ${user.twoFactorEnabled ? "text-green-700" : "text-amber-700"}`}>
+                      Authenticator: {user.twoFactorEnabled ? "Activo" : "Inactivo"}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
@@ -568,6 +797,12 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                    <button
+                      onClick={() => openAuthenticatorModal(user)}
+                      className="text-emerald-700 hover:text-emerald-900"
+                    >
+                      Authenticator
+                    </button>
                     {user.role !== 'ADMIN' && (
                       <>
                         <button

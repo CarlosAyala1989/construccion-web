@@ -19,6 +19,9 @@ model User {
   isActive               Boolean                 @default(true) // For Soft Delete
   accessRole             String                  @default("DESKTOP_SCANNER") // "WEB_VIEWER" or "DESKTOP_SCANNER"
   documentAccessMode     String                  @default("PASSWORD_SCOPED") // "GLOBAL" or "PASSWORD_SCOPED"
+  twoFactorEnabled       Boolean                 @default(false)
+  twoFactorSecret        String?                 @db.Text
+  twoFactorConfirmedAt   DateTime?
   workspaces             Workspace[]             @relation("UserWorkspaces")
   documentPasswordGrants DocumentPasswordGrant[]
   createdAt              DateTime                @default(now())
