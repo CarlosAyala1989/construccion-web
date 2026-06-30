@@ -1,0 +1,26 @@
+{
+  "kind": "critique-panel",
+  "score": 4.4,
+  "axes": {
+    "clarity": {
+      "score": 4.6,
+      "notes": "La navegación, los encabezados y la terminología explican las tareas sin jerga técnica innecesaria."
+    },
+    "hierarchy": {
+      "score": 4.5,
+      "notes": "Cada vista tiene un foco principal; el resumen separa indicadores, actividad y accesos rápidos con una lectura predecible."
+    },
+    "typography": {
+      "score": 4.4,
+      "notes": "La escala de títulos, etiquetas y datos es consistente y conserva legibilidad desde 390 px hasta escritorio."
+    },
+    "motion": {
+      "score": 4.0,
+      "notes": "Las transiciones se limitan a navegación, estados de presión y carga; se respeta prefers-reduced-motion."
+    },
+    "brand": {
+      "score": 4.5,
+      "notes": "La base neutra, el azul de acción, los bordes finos y el uso contenido de profundidad mantienen una dirección Apple coherente."
+    }
+  }
+}

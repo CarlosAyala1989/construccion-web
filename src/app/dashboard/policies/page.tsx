@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Policy = {
   id: string;
@@ -28,22 +28,21 @@ export default function PoliciesPage() {
   const [priority, setPriority] = useState(0);
   const [workspaceId, setWorkspaceId] = useState("");
 
-  useEffect(() => {
-    fetchPolicies();
-    fetchWorkspaces();
-  }, []);
-
-  const fetchPolicies = async () => {
+  const fetchPolicies = useCallback(async () => {
     const res = await fetch("/api/policies");
     const data = await res.json();
     setPolicies(data);
     setIsLoading(false);
-  };
+  }, []);
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = useCallback(async () => {
     const res = await fetch("/api/workspaces");
     if (res.ok) setWorkspaces(await res.json());
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => Promise.all([fetchPolicies(), fetchWorkspaces()]));
+  }, [fetchPolicies, fetchWorkspaces]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +81,9 @@ export default function PoliciesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900">Políticas de Seguridad Híbrida (Escudo de Privacidad)</h3>
+        <h3 className="text-lg font-medium text-gray-900">Políticas de protección</h3>
         <p className="mt-2 text-sm text-gray-500">
           Configura las reglas para el motor de Criptografía Jerárquica que se ejecutará en el cliente de escritorio. 
           Las políticas visuales (Computer Vision) tienen prioridad técnica sobre las semánticas (OCR).
@@ -93,7 +92,7 @@ export default function PoliciesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-md font-medium text-gray-900 mb-4">Nueva Regla</h4>
+          <h4 className="text-md font-medium text-gray-900 mb-4">Nueva regla</h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Tipo de Motor</label>

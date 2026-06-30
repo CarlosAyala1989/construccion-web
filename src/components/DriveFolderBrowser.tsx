@@ -1,5 +1,6 @@
 "use client";
 
+import { AppIcon } from "@/components/AppIcon";
 import { useState, useEffect, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────
@@ -251,9 +252,9 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="drive-browser-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden flex flex-col"
+        className="drive-browser-dialog bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden flex flex-col"
         style={{ maxHeight: "80vh" }}
         onClick={e => e.stopPropagation()}
       >
@@ -322,7 +323,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                           : "text-gray-600 hover:text-blue-600"
                       }`}
                     >
-                      {idx === 0 ? "📁 Mi Drive" : item.name}
+                      {idx === 0 ? "Mi Drive" : item.name}
                     </button>
                   </span>
                 ))}
@@ -339,7 +340,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                     className="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100"
                     title="Recargar"
                   >
-                    🔄 Recargar
+                    Recargar
                   </button>
                   <button
                     onClick={() => { setShowNewFolder(true); setNewFolderName(""); }}
@@ -353,7 +354,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
               {/* New folder input */}
               {showNewFolder && (
                 <div className="px-4 py-3 bg-blue-50 border-b flex items-center gap-2 flex-shrink-0">
-                  <span className="text-lg">📁</span>
+                  <AppIcon name="folder" />
                   <input
                     type="text"
                     value={newFolderName}
@@ -398,7 +399,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                   </div>
                 ) : folders.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-4xl mb-3">📂</div>
+                    <div className="mb-3 flex justify-center text-gray-400"><AppIcon name="folder" /></div>
                     <p className="text-sm text-gray-500">No hay carpetas aquí.</p>
                     <p className="text-xs text-gray-400 mt-1">Puedes crear una nueva con el botón de arriba.</p>
                   </div>
@@ -415,9 +416,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                         onClick={() => setSelectedFolder(selectedFolder?.id === folder.id ? null : folder)}
                         onDoubleClick={() => navigateToFolder(folder)}
                       >
-                        <span className="text-xl flex-shrink-0">
-                          {selectedFolder?.id === folder.id ? "📂" : "📁"}
-                        </span>
+                        <span className="text-blue-600 flex-shrink-0"><AppIcon name="folder" /></span>
                         <span className="text-sm text-gray-800 flex-1 truncate font-medium">
                           {folder.name}
                         </span>
@@ -436,7 +435,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
               {/* Selection info */}
               <div className="px-4 py-3 bg-gray-50 border-t flex-shrink-0">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>📍 Destino:</span>
+                  <span>Destino:</span>
                   <span className="font-medium text-gray-700">
                     {selectedFolder
                       ? `${breadcrumb.slice(1).map(b => b.name).join("/")}${breadcrumb.length > 1 ? "/" : ""}${selectedFolder.name}`
@@ -449,12 +448,12 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 </p>
                 {refreshToken && (
                   <p className="text-xs text-green-600 mt-1">
-                    ✅ Credenciales de larga duración obtenidas — el escritorio podrá subir archivos automáticamente.
+                    Credenciales de larga duración obtenidas. El escritorio podrá subir archivos automáticamente.
                   </p>
                 )}
                 {!refreshToken && accessToken && (
                   <p className="text-xs text-amber-600 mt-1">
-                    ⚠️ No se obtuvo refresh token — la subida automática podría requerir re-autorización.
+                    No se obtuvo un token de actualización. La subida automática podría requerir una nueva autorización.
                   </p>
                 )}
               </div>

@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 const GOOGLE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
+export const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 export type DrivePdfFile = {
   id: string;
@@ -13,6 +14,8 @@ export type DrivePdfFile = {
   modifiedTime?: string;
   webViewLink?: string;
 };
+
+export type DriveFolderItem = DrivePdfFile;
 
 type GoogleCredentials = {
   clientId: string;
@@ -120,6 +123,49 @@ export async function listDrivePdfs(folderId: string, accessToken: string) {
   return files;
 }
 
+export async function listDriveFolder(folderId: string, accessToken: string) {
+  const items: DriveFolderItem[] = [];
+  let pageToken = "";
+
+  do {
+    const query = `'${folderId}' in parents and trashed=false and (mimeType='application/pdf' or mimeType='${DRIVE_FOLDER_MIME_TYPE}')`;
+    const params = new URLSearchParams({
+      q: query,
+      fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink)",
+      orderBy: "name_natural",
+      pageSize: "100",
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+    });
+
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const response = await fetch(`${GOOGLE_FILES_URL}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      const payload = await readGoogleError(response);
+      throw new GoogleDriveError(
+        payload.error_description || payload.message || "No se pudo listar la carpeta de Google Drive.",
+        response.status === 401 || response.status === 403 ? response.status : 502,
+        payload.error
+      );
+    }
+
+    const data = await response.json();
+    items.push(...(data.files || []));
+    pageToken = data.nextPageToken || "";
+  } while (pageToken);
+
+  return items.sort((left, right) => {
+    const leftFolder = left.mimeType === DRIVE_FOLDER_MIME_TYPE;
+    const rightFolder = right.mimeType === DRIVE_FOLDER_MIME_TYPE;
+    if (leftFolder !== rightFolder) return leftFolder ? -1 : 1;
+    return left.name.localeCompare(right.name, "es");
+  });
+}
+
 export async function getDriveFileMetadata(fileId: string, accessToken: string) {
   const params = new URLSearchParams({
     fields: "id,name,mimeType,size,parents,modifiedTime",
@@ -140,6 +186,27 @@ export async function getDriveFileMetadata(fileId: string, accessToken: string) 
   }
 
   return response.json() as Promise<DrivePdfFile & { parents?: string[] }>;
+}
+
+export async function isDriveItemWithinFolder(itemId: string, rootFolderId: string, accessToken: string) {
+  if (itemId === rootFolderId) return true;
+
+  const pending = [itemId];
+  const visited = new Set<string>();
+
+  while (pending.length > 0 && visited.size < 100) {
+    const currentId = pending.shift();
+    if (!currentId || visited.has(currentId)) continue;
+    visited.add(currentId);
+
+    const metadata = await getDriveFileMetadata(currentId, accessToken);
+    for (const parentId of metadata.parents || []) {
+      if (parentId === rootFolderId) return true;
+      if (!visited.has(parentId)) pending.push(parentId);
+    }
+  }
+
+  return false;
 }
 
 export async function downloadDriveFile(fileId: string, accessToken: string) {

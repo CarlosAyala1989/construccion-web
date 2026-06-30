@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Programa de Escritorio — Apple Design System",
+  "entry": "construccion-web-desktop-app.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "primary": true,
+  "createdAt": "2026-06-29T03:46:52.821Z",
+  "updatedAt": "2026-06-29T03:46:52.830Z",
+  "designSystemId": "apple",
+  "metadata": {
+    "identifier": "construccion-web-desktop-app",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,2062 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Sincronización y Políticas — Estilo Apple</title>
+  
+  <!-- Carga de Fuentes de Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─────────────────────────────────────────────────────────────────────────
+     * Tokens del Sistema de Diseño Apple - Bindings
+     * ───────────────────────────────────────────────────────────────────────── */
+    :root {
+      --bg: #ffffff;
+      --surface: #f5f5f7;
+      --surface-warm: #fbfbfd;
+
+      --fg: #1d1d1f;
+      --fg-2: #424245;
+      --muted: #6e6e73;
+      --meta: #86868b;
+
+      --border: #d2d2d7;
+      --border-soft: #e8e8ed;
+
+      --accent: #0071e3;
+      --accent-on: #ffffff;
+      --accent-hover: #0077ed;
+      --accent-active: #0066cc;
+
+      --success: #16a34a;
+      --warn:    #eab308;
+      --danger:  #dc2626;
+
+      --font-display: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+      --text-xs:   12px;
+      --text-sm:   14px;
+      --text-base: 17px;
+      --text-lg:   21px;
+      --text-xl:   28px;
+      --text-2xl:  40px;
+      --text-3xl:  56px;
+      --text-4xl:  80px;
+
+      --leading-body:  1.47;
+      --leading-tight: 1.05;
+      --tracking-display: -0.015em;
+
+      --space-1:  4px;
+      --space-2:  8px;
+      --space-3:  12px;
+      --space-4:  16px;
+      --space-5:  20px;
+      --space-6:  24px;
+      --space-8:  32px;
+      --space-12: 48px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   18px;
+      --radius-pill: 980px;
+
+      --elev-flat:   none;
+      --elev-ring:   0 0 0 1px var(--border);
+      --elev-raised: 0 12px 32px rgba(0, 0, 0, 0.08);
+
+      --focus-ring: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 65%);
+      --motion-fast:   150ms;
+      --motion-base:   220ms;
+      --ease-standard: cubic-bezier(0.28, 0, 0.22, 1);
+
+      --container-max:            1024px;
+      --container-gutter-desktop: 22px;
+      --container-gutter-tablet:  18px;
+      --container-gutter-phone:   16px;
+    }
+  </style>
+
+  <!-- Pinned React & Babel Libraries -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- Elemento raíz de React -->
+  <div id="app-root" style="width: 100%; min-height: 100vh;"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accentColor": "#0071e3",
+      "borderRadius": 12,
+      "fontSize": 14,
+      "glassEffect": true
+    }/*EDITMODE-END*/;
+
+    // Componente Principal
+    function App() {
+      // Estado para los Tweaks visuales interactivos
+      const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+      const [activeTab, setActiveTab] = useState('documents');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [viewMode, setViewMode] = useState('list'); // list | grid
+      const [toast, setToast] = useState(null);
+
+      // Estados de Modales
+      const [showUploadModal, setShowUploadModal] = useState(false);
+      const [showAddUserModal, setShowAddUserModal] = useState(false);
+      const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+
+      // Modales - Datos de formulario
+      const [newUserName, setNewUserName] = useState('');
+      const [newUserEmail, setNewUserEmail] = useState('');
+      const [newUserRole, setNewUserRole] = useState('Viewer');
+      const [newUploadName, setNewUploadName] = useState('');
+      const [newUploadTarget, setNewUploadTarget] = useState('Ventas');
+
+      // Simulación de Base de Datos / Estados Reactivos
+      const [documents, setDocuments] = useState([
+        { id: 1, name: "Presupuesto_Anual_Q3_2026.xlsx", size: "4.2 MB", workspace: "Finanzas", status: "sync", lastSync: "Hace 5 min", modifiedBy: "Carlos Ruiz" },
+        { id: 2, name: "Politicas_Privacidad_V3.pdf", size: "1.8 MB", workspace: "Legal", status: "sync", lastSync: "Hace 10 min", modifiedBy: "Ana Gómez" },
+        { id: 3, name: "Plan_Estrategico_Construccion.docx", size: "12.4 MB", workspace: "Operaciones", status: "pending", lastSync: "En cola", modifiedBy: "Diego Martínez" },
+        { id: 4, name: "Credenciales_Servidor_Temp.txt", size: "12 KB", workspace: "TI & Infraestructura", status: "error", lastSync: "Fallo de credenciales", modifiedBy: "Sistemas" },
+        { id: 5, name: "Manual_Onboarding_Empleados.pdf", size: "5.1 MB", workspace: "Recursos Humanos", status: "sync", lastSync: "Ayer", modifiedBy: "Laura Estévez" },
+        { id: 6, name: "Diagrama_Red_Segura_V4.vsd", size: "8.9 MB", workspace: "TI & Infraestructura", status: "sync", lastSync: "Hace 2 horas", modifiedBy: "Marcos Polo" }
+      ]);
+
+      const [workspaces, setWorkspaces] = useState([
+        { id: 1, name: "Finanzas", driveFolder: "17_Finance_Shared", syncedItems: 142, size: "1.2 GB", active: true },
+        { id: 2, name: "Legal", driveFolder: "04_Legal_Documents", syncedItems: 85, size: "450 MB", active: true },
+        { id: 3, name: "Operaciones", driveFolder: "Operations_2026", syncedItems: 320, size: "3.4 GB", active: true },
+        { id: 4, name: "TI & Infraestructura", driveFolder: "IT_Infrastructure_Backup", syncedItems: 12, size: "820 MB", active: true },
+        { id: 5, name: "Recursos Humanos", driveFolder: "HR_Employees_Zone", syncedItems: 98, size: "612 MB", active: false }
+      ]);
+
+      const [users, setUsers] = useState([
+        { id: 1, name: "Carlos Ruiz", email: "c.ruiz@organizacion.com", role: "Admin", totp: true },
+        { id: 2, name: "Ana Gómez", email: "a.gomez@organizacion.com", role: "Editor", totp: true },
+        { id: 3, name: "Diego Martínez", email: "d.martinez@organizacion.com", role: "Editor", totp: false },
+        { id: 4, name: "Laura Estévez", email: "l.estevez@organizacion.com", role: "Viewer", totp: false },
+        { id: 5, name: "Sistemas Administrador", email: "sysadmin@organizacion.com", role: "Admin", totp: true }
+      ]);
+
+      const [policies, setPolicies] = useState({
+        requirePasswords: true,
+        enforceMfaAdmin: true,
+        restrictIps: false,
+        linkExpiration: "7",
+        maxUploadSize: "50"
+      });
+
+      const [logs, setLogs] = useState([
+        { id: 1, date: "2026-06-28 22:41:05", user: "Carlos Ruiz", action: "Sincronización manual completada", status: "success" },
+        { id: 2, date: "2026-06-28 22:38:12", user: "Diego Martínez", action: "Intento de carga bloqueado por tamaño (62MB)", status: "warn" },
+        { id: 3, date: "2026-06-28 22:30:00", user: "Sistemas", action: "Fallo de conexión en Workspace TI: Credencial inválida", status: "error" },
+        { id: 4, date: "2026-06-28 21:15:43", user: "Ana Gómez", action: "Descarga de documento 'Politicas_Privacidad_V3.pdf'", status: "success" },
+        { id: 5, date: "2026-06-28 19:45:11", user: "Laura Estévez", action: "Inicio de sesión exitoso con MFA", status: "success" }
+      ]);
+
+      const [config, setConfig] = useState({
+        googleClientId: "9481948194-ab82jdh29dh10dh.apps.googleusercontent.com",
+        googleClientSecret: "••••••••••••••••••••••••",
+        syncInterval: "15",
+        recaptchaKey: "6Lc_abcdefghijklmnopqrstuvwxyz",
+        localBackupPath: "/Users/Admin/Library/Application Support/CloudSync/Backups"
+      });
+
+      // Efecto para notificaciones auto-eliminables
+      useEffect(() => {
+        if (toast) {
+          const timer = setTimeout(() => setToast(null), 3000);
+          return () => clearTimeout(timer);
+        }
+      }, [toast]);
+
+      // Filtrado por barra de búsqueda
+      const filteredDocuments = useMemo(() => {
+        if (!searchQuery) return documents;
+        return documents.filter(doc => 
+          doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.workspace.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.modifiedBy.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }, [documents, searchQuery]);
+
+      const filteredUsers = useMemo(() => {
+        if (!searchQuery) return users;
+        return users.filter(user => 
+          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }, [users, searchQuery]);
+
+      const filteredLogs = useMemo(() => {
+        if (!searchQuery) return logs;
+        return logs.filter(log => 
+          log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          log.user.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }, [logs, searchQuery]);
+
+      // Funciones de acción interactiva
+      const triggerToast = (message, type = 'success') => {
+        setToast({ message, type });
+      };
+
+      const handleUploadSubmit = (e) => {
+        e.preventDefault();
+        if (!newUploadName) return;
+        const newDoc = {
+          id: documents.length + 1,
+          name: newUploadName.endsWith('.pdf') || newUploadName.endsWith('.xlsx') || newUploadName.endsWith('.docx') ? newUploadName : `${newUploadName}.pdf`,
+          size: "1.4 MB",
+          workspace: newUploadTarget,
+          status: "pending",
+          lastSync: "En cola",
+          modifiedBy: "Usuario Actual"
+        };
+        setDocuments([newDoc, ...documents]);
+        setShowUploadModal(false);
+        setNewUploadName('');
+        triggerToast("Archivo subido a la cola de sincronización correctamente.");
+      };
+
+      const handleAddUserSubmit = (e) => {
+        e.preventDefault();
+        if (!newUserName || !newUserEmail) return;
+        const newUser = {
+          id: users.length + 1,
+          name: newUserName,
+          email: newUserEmail,
+          role: newUserRole,
+          totp: false
+        };
+        setUsers([...users, newUser]);
+        setShowAddUserModal(false);
+        setNewUserName('');
+        setNewUserEmail('');
+        triggerToast(`Usuario ${newUserName} invitado con rol ${newUserRole}.`);
+      };
+
+      const toggleWorkspace = (id, name) => {
+        setWorkspaces(workspaces.map(ws => ws.id === id ? { ...ws, active: !ws.active } : ws));
+        const active = workspaces.find(ws => ws.id === id).active;
+        triggerToast(`${active ? 'Desactivado' : 'Activado'} espacio de trabajo: ${name}`);
+      };
+
+      const handlePolicyChange = (key, value) => {
+        setPolicies(prev => ({ ...prev, [key]: value }));
+        triggerToast("Políticas actualizadas en tiempo real.");
+      };
+
+      const forceGlobalSync = () => {
+        triggerToast("Iniciando sincronización forzada con Google Drive...");
+        // Simular éxito después de 1 segundo
+        setTimeout(() => {
+          setDocuments(prev => prev.map(doc => doc.status === 'pending' ? { ...doc, status: 'sync', lastSync: "Hace un momento" } : doc));
+          triggerToast("¡Sincronización completada con éxito!");
+        }, 1500);
+      };
+
+      return (
+        <div className="desktop-environment">
+          {/* Estilos dinámicos inyectados por el panel de Tweaks */}
+          <style dangerouslySetInnerHTML={{__html: `
+            :root {
+              --accent: ${tweaks.accentColor};
+              --accent-hover: color-mix(in srgb, ${tweaks.accentColor} 90%, #ffffff);
+              --accent-active: color-mix(in srgb, ${tweaks.accentColor} 85%, #000000);
+              --radius-md: ${tweaks.borderRadius}px;
+              --radius-lg: ${tweaks.borderRadius + 6}px;
+              --radius-sm: ${tweaks.borderRadius - 4}px;
+              font-size: ${tweaks.fontSize}px;
+            }
+            .sidebar {
+              background: ${tweaks.glassEffect ? 'rgba(245, 245, 247, 0.82)' : '#f5f5f7'};
+              backdrop-filter: ${tweaks.glassEffect ? 'blur(20px)' : 'none'};
+            }
+          `}} />
+
+          {/* Toast de Notificaciones */}
+          {toast && (
+            <div className={`toast-container ${toast.type}`}>
+              <div className="toast-content">
+                <span className="toast-dot"></span>
+                <span className="toast-message">{toast.message}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Ventana macOS Simulación */}
+          <div className="window-container">
+            
+            {/* Barra lateral macOS */}
+            <aside className="sidebar">
+              
+              {/* Traffic Lights (Control de Ventanas de Apple) */}
+              <div className="window-controls">
+                <span className="close-dot"></span>
+                <span className="minimize-dot"></span>
+                <span className="expand-dot"></span>
+              </div>
+
+              {/* Título de la Aplicación */}
+              <div className="sidebar-app-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '8px'}}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>Desktop Sync</span>
+              </div>
+
+              {/* Navegación Principal */}
+              <nav className="sidebar-nav">
+                <div className="nav-group-title">Sincronización</div>
+                <button className={`nav-item ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => { setActiveTab('documents'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  Documentos
+                </button>
+                <button className={`nav-item ${activeTab === 'workspaces' ? 'active' : ''}`} onClick={() => { setActiveTab('workspaces'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  Espacios de Trabajo
+                </button>
+
+                <div className="nav-group-title">Seguridad y Control</div>
+                <button className={`nav-item ${activeTab === 'users' ? 'active' : ''}`} onClick={() => { setActiveTab('users'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                  Usuarios
+                </button>
+                <button className={`nav-item ${activeTab === 'policies' ? 'active' : ''}`} onClick={() => { setActiveTab('policies'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Políticas de Acceso
+                </button>
+                <button className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => { setActiveTab('logs'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Registro (Logs)
+                </button>
+
+                <div className="nav-group-title">Ajustes</div>
+                <button className={`nav-item ${activeTab === 'config' ? 'active' : ''}`} onClick={() => { setActiveTab('config'); setSearchQuery(''); }}>
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                  Configuración
+                </button>
+              </nav>
+
+              {/* Estado del Almacenamiento Integrado */}
+              <div className="sidebar-storage">
+                <div className="storage-labels">
+                  <span>Drive Usado</span>
+                  <span>5.8 GB de 15 GB</span>
+                </div>
+                <div className="storage-bar-bg">
+                  <div className="storage-bar-fg" style={{width: '38.6%'}}></div>
+                </div>
+              </div>
+
+            </aside>
+
+            {/* Contenido Principal */}
+            <main className="content-area">
+              
+              {/* Barra de herramientas superior macOS */}
+              <header className="content-header">
+                <div>
+                  <h1 className="view-title">
+                    {activeTab === 'documents' && "Documentos Sincronizados"}
+                    {activeTab === 'workspaces' && "Espacios de Trabajo"}
+                    {activeTab === 'users' && "Directorio de Usuarios"}
+                    {activeTab === 'policies' && "Políticas de Acceso Seguro"}
+                    {activeTab === 'logs' && "Registro de Auditoría"}
+                    {activeTab === 'config' && "Configuración del Sistema"}
+                  </h1>
+                  <p className="view-subtitle">
+                    {activeTab === 'documents' && "Archivos locales emparejados con Google Drive"}
+                    {activeTab === 'workspaces' && "Carpetas conectadas y límites de cuota"}
+                    {activeTab === 'users' && "Control de roles y verificación de doble factor (MFA)"}
+                    {activeTab === 'policies' && "Reglas para el control de descargas y enlaces temporales"}
+                    {activeTab === 'logs' && "Seguimiento de eventos del sistema y accesos"}
+                    {activeTab === 'config' && "Configuración de credenciales de Google y respaldos"}
+                  </p>
+                </div>
+
+                {/* Acciones Rápidas */}
+                <div className="header-actions">
+                  {(activeTab === 'documents' || activeTab === 'users' || activeTab === 'logs') && (
+                    <div className="search-box-container">
+                      <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                      <input 
+                        type="text" 
+                        placeholder="Buscar..." 
+                        className="search-input"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'documents' && (
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      <div className="segmented-control">
+                        <button className={`control-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+                          Lista
+                        </button>
+                        <button className={`control-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+                          Cuadrícula
+                        </button>
+                      </div>
+                      <button className="btn btn-primary" onClick={() => setShowUploadModal(true)}>
+                        Subir Archivo
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTab === 'workspaces' && (
+                    <button className="btn btn-primary" onClick={() => setShowWorkspaceModal(true)}>
+                      Vincular Espacio
+                    </button>
+                  )}
+
+                  {activeTab === 'users' && (
+                    <button className="btn btn-primary" onClick={() => setShowAddUserModal(true)}>
+                      Nuevo Usuario
+                    </button>
+                  )}
+
+                  {activeTab === 'logs' && (
+                    <button className="btn btn-secondary" onClick={() => triggerToast("Registro exportado como CSV correctamente.")}>
+                      Exportar Historial
+                    </button>
+                  )}
+                </div>
+              </header>
+
+              {/* ZONA DE VISTAS DINÁMICAS */}
+              <div className="view-content-wrapper">
+                
+                {/* 1. DOCUMENTOS */}
+                {activeTab === 'documents' && (
+                  <div>
+                    {/* Tarjetas informativas de Estado */}
+                    <div className="stats-row">
+                      <div className="stat-card">
+                        <span className="stat-value">{documents.length}</span>
+                        <span className="stat-label">Archivos Totales</span>
+                      </div>
+                      <div className="stat-card">
+                        <span className="stat-value text-success">{documents.filter(d => d.status === 'sync').length}</span>
+                        <span className="stat-label">Sincronizados</span>
+                      </div>
+                      <div className="stat-card">
+                        <span className="stat-value text-warning">{documents.filter(d => d.status === 'pending').length}</span>
+                        <span className="stat-label">En Cola</span>
+                      </div>
+                      <button className="sync-banner-btn" onClick={forceGlobalSync}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: '6px'}}>
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Sincronizar Todo Ahora
+                      </button>
+                    </div>
+
+                    {/* Tabla / Lista de Archivos */}
+                    {viewMode === 'list' ? (
+                      <table className="apple-table">
+                        <thead>
+                          <tr>
+                            <th>Nombre del Archivo</th>
+                            <th>Espacio de Trabajo</th>
+                            <th>Tamaño</th>
+                            <th>Estado de Sincronización</th>
+                            <th>Última Modificación</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDocuments.map(doc => (
+                            <tr key={doc.id}>
+                              <td style={{fontWeight: '500', color: 'var(--fg)'}}>
+                                <div style={{display: 'flex', alignItems: 'center'}}>
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{marginRight: '8px'}}>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                  </svg>
+                                  {doc.name}
+                                </div>
+                              </td>
+                              <td><span className="tag-workspace">{doc.workspace}</span></td>
+                              <td>{doc.size}</td>
+                              <td>
+                                <span className={`status-badge ${doc.status}`}>
+                                  <span className="status-dot"></span>
+                                  {doc.status === 'sync' && "Sincronizado"}
+                                  {doc.status === 'pending' && "Pendiente"}
+                                  {doc.status === 'error' && "Error de Acceso"}
+                                </span>
+                              </td>
+                              <td style={{color: 'var(--muted)', fontSize: 'var(--text-xs)'}}>
+                                {doc.lastSync} <span style={{display: 'block', color: 'var(--meta)'}}>por {doc.modifiedBy}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      /* Cuadrícula de Archivos */
+                      <div className="apple-grid">
+                        {filteredDocuments.map(doc => (
+                          <div className="grid-item-card" key={doc.id}>
+                            <span className={`grid-status-dot ${doc.status}`}></span>
+                            <div className="file-icon-box">
+                              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                              </svg>
+                            </div>
+                            <h3 className="grid-file-name" title={doc.name}>{doc.name}</h3>
+                            <span className="tag-workspace" style={{margin: '6px 0'}}>{doc.workspace}</span>
+                            <div className="grid-file-meta">
+                              <span>{doc.size}</span>
+                              <span>{doc.lastSync}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. ESPACIOS DE TRABAJO */}
+                {activeTab === 'workspaces' && (
+                  <div className="workspaces-container">
+                    <div className="workspaces-grid">
+                      {workspaces.map(ws => (
+                        <div className={`workspace-card ${ws.active ? 'active' : 'disabled'}`} key={ws.id}>
+                          <div className="workspace-card-header">
+                            <div className="ws-title-box">
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ws.active ? 'var(--accent)' : 'var(--muted)'} strokeWidth="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                              <h3>{ws.name}</h3>
+                            </div>
+                            <div className="toggle-switch">
+                              <input 
+                                type="checkbox" 
+                                id={`ws-toggle-${ws.id}`} 
+                                checked={ws.active}
+                                onChange={() => toggleWorkspace(ws.id, ws.name)}
+                              />
+                              <label htmlFor={`ws-toggle-${ws.id}`}></label>
+                            </div>
+                          </div>
+
+                          <div className="workspace-details">
+                            <div className="detail-row">
+                              <span className="detail-label">Carpeta Drive:</span>
+                              <span className="detail-value font-mono">{ws.driveFolder}</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Archivos Sincronizados:</span>
+                              <span className="detail-value">{ws.syncedItems} elementos</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Espacio Ocupado:</span>
+                              <span className="detail-value">{ws.size}</span>
+                            </div>
+                          </div>
+
+                          <div className="workspace-card-footer">
+                            <span className={`status-indicator ${ws.active ? 'synced' : 'paused'}`}>
+                              {ws.active ? 'Conexión Activa' : 'Sincronización Pausada'}
+                            </span>
+                            <button className="btn btn-secondary btn-small" onClick={() => triggerToast(`Abriendo ${ws.driveFolder} en Google Drive...`)}>
+                              Ver en Drive
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. USUARIOS */}
+                {activeTab === 'users' && (
+                  <div>
+                    <table className="apple-table">
+                      <thead>
+                        <tr>
+                          <th>Nombre y Correo</th>
+                          <th>Rol de Acceso</th>
+                          <th>Seguridad TOTP / MFA</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.map(user => (
+                          <tr key={user.id}>
+                            <td>
+                              <div style={{fontWeight: '500', color: 'var(--fg)'}}>{user.name}</div>
+                              <div style={{color: 'var(--muted)', fontSize: 'var(--text-xs)'}}>{user.email}</div>
+                            </td>
+                            <td>
+                              <select 
+                                className="table-select" 
+                                value={user.role}
+                                onChange={(e) => {
+                                  const updated = users.map(u => u.id === user.id ? {...u, role: e.target.value} : u);
+                                  setUsers(updated);
+                                  triggerToast(`Rol de ${user.name} actualizado a ${e.target.value}`);
+                                }}
+                              >
+                                <option value="Admin">Administrador</option>
+                                <option value="Editor">Editor</option>
+                                <option value="Viewer">Lector</option>
+                              </select>
+                            </td>
+                            <td>
+                              <span className={`security-badge ${user.totp ? 'active' : 'inactive'}`}>
+                                {user.totp ? "Verificado (MFA)" : "MFA Desactivado"}
+                              </span>
+                            </td>
+                            <td>
+                              <button className="btn-table-action" onClick={() => triggerToast(`Enviando enlace de restablecimiento a ${user.email}...`)}>
+                                Resetear Clave
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 4. POLÍTICAS */}
+                {activeTab === 'policies' && (
+                  <div className="policies-layout">
+                    <div className="policy-settings-box">
+                      
+                      <div className="policy-card">
+                        <div className="policy-info">
+                          <h3>Requerir contraseña para descargas públicas</h3>
+                          <p>Obliga al uso de una clave segura de acceso para cualquier archivo descargado mediante enlaces públicos.</p>
+                        </div>
+                        <div className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            id="policy-passwords" 
+                            checked={policies.requirePasswords}
+                            onChange={(e) => handlePolicyChange('requirePasswords', e.target.checked)}
+                          />
+                          <label htmlFor="policy-passwords"></label>
+                        </div>
+                      </div>
+
+                      <div className="policy-card">
+                        <div className="policy-info">
+                          <h3>Autenticación TOTP (MFA) obligatoria</h3>
+                          <p>Obliga a los administradores y editores a configurar verificación en dos pasos (TOTP) para poder sincronizar archivos.</p>
+                        </div>
+                        <div className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            id="policy-mfa" 
+                            checked={policies.enforceMfaAdmin}
+                            onChange={(e) => handlePolicyChange('enforceMfaAdmin', e.target.checked)}
+                          />
+                          <label htmlFor="policy-mfa"></label>
+                        </div>
+                      </div>
+
+                      <div className="policy-card">
+                        <div className="policy-info">
+                          <h3>Restringir acceso por direcciones IP</h3>
+                          <p>Bloquea la sincronización automática si el cliente se encuentra fuera del rango de IP corporativo.</p>
+                        </div>
+                        <div className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            id="policy-ips" 
+                            checked={policies.restrictIps}
+                            onChange={(e) => handlePolicyChange('restrictIps', e.target.checked)}
+                          />
+                          <label htmlFor="policy-ips"></label>
+                        </div>
+                      </div>
+
+                      <div className="input-group-row">
+                        <div className="form-group">
+                          <label className="form-label">Expiración automática de enlaces (Días)</label>
+                          <select 
+                            className="form-input" 
+                            value={policies.linkExpiration}
+                            onChange={(e) => handlePolicyChange('linkExpiration', e.target.value)}
+                          >
+                            <option value="1">1 Día</option>
+                            <option value="7">7 Días</option>
+                            <option value="30">30 Días</option>
+                            <option value="0">Nunca expira</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">Tamaño máximo de archivo permitido (MB)</label>
+                          <input 
+                            type="number" 
+                            className="form-input" 
+                            value={policies.maxUploadSize}
+                            onChange={(e) => handlePolicyChange('maxUploadSize', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. LOGS (REGISTRO) */}
+                {activeTab === 'logs' && (
+                  <div>
+                    <table className="apple-table">
+                      <thead>
+                        <tr>
+                          <th>Fecha y Hora</th>
+                          <th>Usuario</th>
+                          <th>Acción Realizada</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredLogs.map(log => (
+                          <tr key={log.id}>
+                            <td className="font-mono" style={{fontSize: 'var(--text-xs)', color: 'var(--muted)'}}>{log.date}</td>
+                            <td style={{fontWeight: '500'}}>{log.user}</td>
+                            <td>{log.action}</td>
+                            <td>
+                              <span className={`status-badge ${log.status === 'success' ? 'sync' : log.status === 'warn' ? 'pending' : 'error'}`}>
+                                <span className="status-dot"></span>
+                                {log.status.toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 6. CONFIGURACIÓN */}
+                {activeTab === 'config' && (
+                  <form className="config-form" onSubmit={(e) => { e.preventDefault(); triggerToast("Configuración guardada correctamente."); }}>
+                    <div className="form-section-title">Credenciales de API de Google</div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Google Client ID</label>
+                      <input 
+                        type="text" 
+                        className="form-input font-mono" 
+                        value={config.googleClientId}
+                        onChange={(e) => setConfig({...config, googleClientId: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Google Client Secret</label>
+                      <input 
+                        type="password" 
+                        className="form-input font-mono" 
+                        value={config.googleClientSecret}
+                        onChange={(e) => setConfig({...config, googleClientSecret: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="form-section-title">Ajustes de Sincronización y Respaldo</div>
+
+                    <div className="input-group-row">
+                      <div className="form-group">
+                        <label className="form-label">Frecuencia de Sincronización (minutos)</label>
+                        <input 
+                          type="number" 
+                          className="form-input" 
+                          value={config.syncInterval}
+                          onChange={(e) => setConfig({...config, syncInterval: e.target.value})}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">reCAPTCHA Site Key</label>
+                        <input 
+                          type="text" 
+                          className="form-input font-mono" 
+                          value={config.recaptchaKey}
+                          onChange={(e) => setConfig({...config, recaptchaKey: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Ruta de Respaldo Local</label>
+                      <div style={{display: 'flex', gap: '8px'}}>
+                        <input 
+                          type="text" 
+                          className="form-input font-mono" 
+                          readOnly 
+                          value={config.localBackupPath}
+                        />
+                        <button type="button" className="btn btn-secondary" onClick={() => triggerToast("Buscador de directorios del sistema no disponible en la demostración.")}>
+                          Cambiar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{marginTop: '24px', display: 'flex', justifyContent: 'flex-end'}}>
+                      <button type="submit" className="btn btn-primary">
+                        Guardar Configuración
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+              </div>
+            </main>
+          </div>
+
+          {/* ───────────────────────────────────────────────────────────────────
+           * MODALES INTERACTIVOS
+           * ─────────────────────────────────────────────────────────────────── */}
+          
+          {/* Modal Subir Archivo */}
+          {showUploadModal && (
+            <div className="modal-backdrop">
+              <div className="modal-container">
+                <div className="modal-header">
+                  <h3>Subir Archivo para Sincronización</h3>
+                  <button className="close-btn" onClick={() => setShowUploadModal(false)}>×</button>
+                </div>
+                <form onSubmit={handleUploadSubmit}>
+                  <div className="form-group">
+                    <label className="form-label">Nombre del archivo (ej. reporte.pdf)</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      required 
+                      placeholder="Ingrese el nombre"
+                      value={newUploadName}
+                      onChange={(e) => setNewUploadName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Espacio de Trabajo de Destino</label>
+                    <select 
+                      className="form-input"
+                      value={newUploadTarget}
+                      onChange={(e) => setNewUploadTarget(e.target.value)}
+                    >
+                      {workspaces.map(ws => (
+                        <option key={ws.id} value={ws.name}>{ws.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={() => setShowUploadModal(false)}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary">Subir</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Vincular Espacio */}
+          {showWorkspaceModal && (
+            <div className="modal-backdrop">
+              <div className="modal-container">
+                <div className="modal-header">
+                  <h3>Vincular Nuevo Espacio de Trabajo</h3>
+                  <button className="close-btn" onClick={() => setShowWorkspaceModal(false)}>×</button>
+                </div>
+                <div className="drive-explorer">
+                  <div className="drive-explorer-header">
+                    <span>Google Drive Personal</span>
+                    <span>/ Mi Unidad</span>
+                  </div>
+                  <div className="drive-list">
+                    <div className="drive-folder-item" onClick={() => { setWorkspaces([...workspaces, { id: workspaces.length + 1, name: "Marketing", driveFolder: "08_Marketing_Shared", syncedItems: 0, size: "0 MB", active: true }]); setShowWorkspaceModal(false); triggerToast("Espacio 'Marketing' vinculado correctamente."); }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" style={{marginRight: '8px'}}>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                      08_Marketing_Shared (Listo para vincular)
+                    </div>
+                    <div className="drive-folder-item" onClick={() => { setWorkspaces([...workspaces, { id: workspaces.length + 1, name: "Ventas", driveFolder: "Sales_Leads_2026", syncedItems: 0, size: "0 MB", active: true }]); setShowWorkspaceModal(false); triggerToast("Espacio 'Ventas' vinculado correctamente."); }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" style={{marginRight: '8px'}}>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                      Sales_Leads_2026 (Listo para vincular)
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowWorkspaceModal(false)}>Cancelar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Nuevo Usuario */}
+          {showAddUserModal && (
+            <div className="modal-backdrop">
+              <div className="modal-container">
+                <div className="modal-header">
+                  <h3>Invitar nuevo usuario</h3>
+                  <button className="close-btn" onClick={() => setShowAddUserModal(false)}>×</button>
+                </div>
+                <form onSubmit={handleAddUserSubmit}>
+                  <div className="form-group">
+                    <label className="form-label">Nombre del Colaborador</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      required 
+                      placeholder="Nombre Completo"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Correo Electrónico</label>
+                    <input 
+                      type="email" 
+                      className="form-input" 
+                      required 
+                      placeholder="correo@organizacion.com"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rol del Usuario</label>
+                    <select 
+                      className="form-input"
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                    >
+                      <option value="Admin">Administrador</option>
+                      <option value="Editor">Editor</option>
+                      <option value="Viewer">Lector</option>
+                    </select>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={() => setShowAddUserModal(false)}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary">Invitar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────────────
+           * PANEL DE CONFIGURACIÓN DE TWEAKS (DISEÑO DINÁMICO)
+           * Exclusivo del prototipo visual para demostrar personalización
+           * ─────────────────────────────────────────────────────────────────── */}
+          <div className="tweaks-panel">
+            <div className="tweaks-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+              </svg>
+              <span>Ajustes Visuales (Demo)</span>
+            </div>
+            
+            <div className="tweak-control">
+              <label>Color de Acento</label>
+              <div className="color-palette-picker">
+                {[
+                  { name: 'Apple Blue', color: '#0071e3' },
+                  { name: 'Apple Graphite', color: '#1d1d1f' },
+                  { name: 'Forest Green', color: '#16a34a' },
+                  { name: 'Sunset Orange', color: '#ea580c' },
+                  { name: 'Royal Purple', color: '#7c3aed' }
+                ].map(item => (
+                  <button 
+                    key={item.color}
+                    type="button" 
+                    title={item.name}
+                    className={`color-dot ${tweaks.accentColor === item.color ? 'active' : ''}`}
+                    style={{backgroundColor: item.color}}
+                    onClick={() => setTweaks({...tweaks, accentColor: item.color})}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="tweak-control">
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <label>Bordes Redondeados</label>
+                <span>{tweaks.borderRadius}px</span>
+              </div>
+              <input 
+                type="range" 
+                min="4" 
+                max="24" 
+                value={tweaks.borderRadius} 
+                onChange={(e) => setTweaks({...tweaks, borderRadius: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <div className="tweak-control">
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <label>Tamaño de Letra</label>
+                <span>{tweaks.fontSize}px</span>
+              </div>
+              <input 
+                type="range" 
+                min="12" 
+                max="18" 
+                value={tweaks.fontSize} 
+                onChange={(e) => setTweaks({...tweaks, fontSize: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <div className="tweak-control" style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-soft)'}}>
+              <label htmlFor="tweak-glass" style={{cursor: 'pointer'}}>Efecto Translúcido (Glassmorphism)</label>
+              <input 
+                type="checkbox" 
+                id="tweak-glass" 
+                checked={tweaks.glassEffect} 
+                onChange={(e) => setTweaks({...tweaks, glassEffect: e.target.checked})}
+              />
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+
+    // Renderizar la aplicación React
+    const root = ReactDOM.createRoot(document.getElementById('app-root'));
+    root.render(<App />);
+  </script>
+
+  <style>
+    /* ─────────────────────────────────────────────────────────────────────────
+     * Estilos Visuales Base y Apple Sonoma/Sequoia Wallpaper Environment
+     * ───────────────────────────────────────────────────────────────────────── */
+    * {
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-body);
+      color: var(--fg);
+      background-color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Fondo dinámico estilo macOS Sonoma */
+    .desktop-environment {
+      width: 100%;
+      min-height: 100vh;
+      background: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.45) 0%, transparent 45%),
+        radial-gradient(circle at 90% 10%, rgba(217, 70, 239, 0.45) 0%, transparent 45%),
+        radial-gradient(circle at 80% 90%, rgba(6, 182, 212, 0.45) 0%, transparent 45%),
+        radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.45) 0%, transparent 45%);
+      background-color: #0b0f19;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px var(--container-gutter-desktop);
+      overflow-y: auto;
+    }
+
+    /* Contenedor de la Ventana Principal */
+    .window-container {
+      width: 100%;
+      max-width: 1160px;
+      height: 760px;
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--elev-raised), 0 0 0 1px rgba(0, 0, 0, 0.12);
+      display: flex;
+      overflow: hidden;
+      transition: all var(--motion-base) var(--ease-standard);
+    }
+
+    /* Barra Lateral Estilo Finder / Ajustes del Sistema */
+    .sidebar {
+      width: 250px;
+      height: 100%;
+      border-right: 1px solid var(--border-soft);
+      padding: var(--space-4) 0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: background-color var(--motion-base);
+    }
+
+    /* Traffic Lights */
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      padding: 0 var(--space-5) var(--space-3);
+    }
+
+    .window-controls span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .close-dot { background-color: #ff5f56; border: 0.5px solid #e0443e; }
+    .minimize-dot { background-color: #ffbd2e; border: 0.5px solid #dfa123; }
+    .expand-dot { background-color: #27c93f; border: 0.5px solid #1aab29; }
+
+    .sidebar-app-title {
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-5) var(--space-4);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 var(--space-2);
+      overflow-y: auto;
+    }
+
+    .nav-group-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--meta);
+      padding: var(--space-3) var(--space-3) var(--space-1);
+    }
+
+    .nav-item {
+      width: 100%;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      margin: 2px 0;
+      border-radius: var(--radius-sm);
+      color: var(--fg-2);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: background var(--motion-fast), color var(--motion-fast);
+    }
+
+    .nav-item:hover {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--fg);
+    }
+
+    .nav-item.active {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      stroke-width: 2.2px;
+    }
+
+    .sidebar-storage {
+      padding: var(--space-4) var(--space-4) 0;
+      border-top: 1px solid var(--border-soft);
+      margin: 0 var(--space-2);
+    }
+
+    .storage-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .storage-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--border-soft);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+    }
+
+    .storage-bar-fg {
+      height: 100%;
+      background: var(--accent);
+      border-radius: var(--radius-pill);
+    }
+
+    /* Área de Contenido Principal */
+    .content-area {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .content-header {
+      padding: var(--space-5) var(--space-6) var(--space-4);
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .view-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--fg);
+      margin: 0 0 4px 0;
+      letter-spacing: var(--tracking-display);
+    }
+
+    .view-subtitle {
+      font-size: var(--text-sm);
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* Buscador macOS */
+    .search-box-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      width: 14px;
+      height: 14px;
+      color: var(--meta);
+    }
+
+    .search-input {
+      background: var(--surface);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 6px 10px 6px 30px;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--fg);
+      width: 200px;
+      transition: width var(--motion-base), background var(--motion-base), border var(--motion-base);
+    }
+
+    .search-input:focus {
+      width: 260px;
+      background: var(--bg);
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
+    /* Controles Segmentados macOS */
+    .segmented-control {
+      background: var(--surface);
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      gap: 2px;
+    }
+
+    .control-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-2);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--motion-fast), color var(--motion-fast);
+    }
+
+    .control-btn.active {
+      background: var(--bg);
+      color: var(--fg);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Contenedor Interior con Scroll */
+    .view-content-wrapper {
+      flex: 1;
+      padding: var(--space-5) var(--space-6);
+      overflow-y: auto;
+    }
+
+    /* Botones Estilo Apple */
+    .btn {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all var(--motion-fast) var(--ease-standard);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:active {
+      background: var(--accent-active);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--fg);
+    }
+
+    .btn-secondary:hover {
+      background: #e8e8ed;
+    }
+
+    .btn-small {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+
+    /* Tarjetas de Estadística */
+    .stats-row {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--surface-warm);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--elev-flat);
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .sync-banner-btn {
+      flex: 1.5;
+      background: color-mix(in oklab, var(--accent), transparent 94%);
+      border: 1px dashed var(--accent);
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--motion-fast);
+    }
+
+    .sync-banner-btn:hover {
+      background: color-mix(in oklab, var(--accent), transparent 88%);
+    }
+
+    /* Tablas Estilo macOS */
+    .apple-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: var(--text-sm);
+    }
+
+    .apple-table th {
+      padding: 10px 12px;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .apple-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-soft);
+      color: var(--fg-2);
+      vertical-align: middle;
+    }
+
+    .apple-table tr:hover td {
+      background-color: var(--surface-warm);
+    }
+
+    /* Badges de Estado */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .status-badge.sync {
+      background: color-mix(in oklab, var(--success), transparent 90%);
+      color: var(--success);
+    }
+    .status-badge.sync .status-dot { background-color: var(--success); }
+
+    .status-badge.pending {
+      background: color-mix(in oklab, var(--warn), transparent 90%);
+      color: #b58900;
+    }
+    .status-badge.pending .status-dot { background-color: var(--warn); }
+
+    .status-badge.error {
+      background: color-mix(in oklab, var(--danger), transparent 90%);
+      color: var(--danger);
+    }
+    .status-badge.error .status-dot { background-color: var(--danger); }
+
+    /* Etiquetas de Espacios de Trabajo */
+    .tag-workspace {
+      display: inline-block;
+      background: var(--surface);
+      color: var(--muted);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border-soft);
+    }
+
+    /* Estilo de Cuadrícula de Archivos (Grid View) */
+    .apple-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .grid-item-card {
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+      cursor: pointer;
+    }
+
+    .grid-item-card:hover {
+      border-color: var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .grid-status-dot {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .grid-status-dot.sync { background-color: var(--success); }
+    .grid-status-dot.pending { background-color: var(--warn); }
+    .grid-status-dot.error { background-color: var(--danger); }
+
+    .file-icon-box {
+      margin-bottom: var(--space-2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 48px;
+      height: 48px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+    }
+
+    .grid-file-name {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--fg);
+      text-align: center;
+      margin: var(--space-2) 0;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .grid-file-meta {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 10px;
+      color: var(--meta);
+      margin-top: auto;
+    }
+
+    /* Espacios de Trabajo (Grid) */
+    .workspaces-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .workspace-card {
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      transition: opacity var(--motion-base), box-shadow var(--motion-base);
+    }
+
+    .workspace-card.disabled {
+      opacity: 0.6;
+    }
+
+    .workspace-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ws-title-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ws-title-box h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .workspace-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
+      padding: var(--space-3) 0;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .detail-label {
+      color: var(--muted);
+    }
+
+    .detail-value {
+      color: var(--fg);
+      font-weight: 500;
+    }
+
+    .workspace-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+
+    .status-indicator {
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+
+    .status-indicator::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+      display: inline-block;
+    }
+
+    .status-indicator.synced::before { background-color: var(--success); }
+    .status-indicator.paused::before { background-color: var(--meta); }
+
+    /* Switch de Activación Estilo iOS/macOS */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-switch label {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #e5e5ea;
+      transition: background-color var(--motion-base) var(--ease-standard);
+      border-radius: 24px;
+    }
+
+    .toggle-switch label::before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: transform var(--motion-base) var(--ease-standard);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + label {
+      background-color: var(--accent);
+    }
+
+    .toggle-switch input:checked + label::before {
+      transform: translateX(20px);
+    }
+
+    /* Tabla selectores e inputs */
+    .table-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--fg);
+      cursor: pointer;
+    }
+
+    .security-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .security-badge.active {
+      background: color-mix(in oklab, var(--success), transparent 90%);
+      color: var(--success);
+      border: 1px solid color-mix(in oklab, var(--success), transparent 70%);
+    }
+
+    .security-badge.inactive {
+      background: color-mix(in oklab, var(--danger), transparent 92%);
+      color: var(--danger);
+      border: 1px solid color-mix(in oklab, var(--danger), transparent 70%);
+    }
+
+    .btn-table-action {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-weight: 500;
+      cursor: pointer;
+      font-size: var(--text-sm);
+    }
+
+    .btn-table-action:hover {
+      text-decoration: underline;
+    }
+
+    /* Políticas */
+    .policy-settings-box {
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .policy-card {
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .policy-info h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+    }
+
+    .policy-info p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* Configuración & Formularios */
+    .config-form {
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .form-section-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--fg);
+      margin: var(--space-4) 0 8px 0;
+      border-bottom: 1px solid var(--border-soft);
+      padding-bottom: 6px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .form-input {
+      background: var(--surface-warm);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--fg);
+      transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+    }
+
+    .form-input:focus {
+      background: var(--bg);
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
+    .input-group-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    /* Fuentes Mono específicas */
+    .font-mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Notificaciones Toast */
+    .toast-container {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      padding: 12px 18px;
+      animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-left: 4px solid var(--accent);
+    }
+
+    .toast-container.error {
+      border-left-color: var(--danger);
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .toast-container.error .toast-dot {
+      background: var(--danger);
+    }
+
+    .toast-message {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg);
+    }
+
+    @keyframes toastSlideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modales Estilo macOS */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 900;
+    }
+
+    .modal-container {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 460px;
+      padding: var(--space-5);
+      animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .modal-header h3 {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: var(--space-5);
+    }
+
+    @keyframes modalScaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Explorador de Google Drive (Vincular Espacio) */
+    .drive-explorer {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-warm);
+      overflow: hidden;
+    }
+
+    .drive-explorer-header {
+      background: var(--surface);
+      padding: var(--space-2) var(--space-3);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .drive-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .drive-folder-item {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      color: var(--fg);
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-soft);
+      transition: background var(--motion-fast);
+    }
+
+    .drive-folder-item:hover {
+      background: color-mix(in oklab, var(--accent), transparent 94%);
+    }
+
+    /* Panel de Tweaks Visuales Flotante */
+    .tweaks-panel {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      width: 280px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .tweaks-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--fg);
+      border-bottom: 1px solid var(--border-soft);
+      padding-bottom: 6px;
+    }
+
+    .tweak-control {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tweak-control label {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .tweak-control input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: var(--border-soft);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .color-palette-picker {
+      display: flex;
+      gap: 6px;
+    }
+
+    .color-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform var(--motion-fast);
+    }
+
+    .color-dot.active {
+      transform: scale(1.15);
+      border-color: #ffffff;
+      box-shadow: 0 0 0 1.5px var(--fg);
+    }
+  </style>
+</body>
+</html>

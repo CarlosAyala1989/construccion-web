@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type AuditLog = {
   id: string;
@@ -42,26 +42,7 @@ export default function LogsPage() {
   // Detail modal
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  useEffect(() => {
-    fetchWorkspaces();
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [pagination.page, filterUserId, filterStatus, filterWorkspaceId, filterDateFrom, filterDateTo]);
-
-  const fetchWorkspaces = async () => {
-    const res = await fetch("/api/workspaces");
-    if (res.ok) setWorkspaces(await res.json());
-  };
-
-  const fetchUsers = async () => {
-    const res = await fetch("/api/users");
-    if (res.ok) setUsers(await res.json());
-  };
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     const params = new URLSearchParams();
     params.set("page", String(pagination.page));
@@ -79,7 +60,26 @@ export default function LogsPage() {
       setPagination(prev => ({ ...prev, ...data.pagination }));
     }
     setIsLoading(false);
-  };
+  }, [filterDateFrom, filterDateTo, filterStatus, filterUserId, filterWorkspaceId, pagination.limit, pagination.page]);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([fetch("/api/workspaces"), fetch("/api/users")])
+      .then(async ([workspaceResponse, userResponse]) => {
+        const [workspaceData, userData] = await Promise.all([
+          workspaceResponse.ok ? workspaceResponse.json() : [],
+          userResponse.ok ? userResponse.json() : [],
+        ]);
+        if (!active) return;
+        setWorkspaces(workspaceData);
+        setUsers(userData);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => fetchLogs());
+  }, [fetchLogs]);
 
   const handleExport = () => {
     const params = new URLSearchParams();
@@ -124,27 +124,27 @@ export default function LogsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Auditoría Forense (Trazabilidad)</h3>
+            <h3 className="text-lg font-medium text-gray-900">Historial de actividad</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Registro histórico completo de operaciones. Filtra por fecha, usuario, espacio y estado.
+              Consulta las operaciones realizadas y filtra por fecha, usuario, espacio o resultado.
             </p>
           </div>
           <button
             onClick={handleExport}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
-            📥 Exportar CSV
+            Exportar CSV
           </button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h4 className="text-sm font-medium text-gray-700 mb-4">Filtros de Búsqueda</h4>
+        <h4 className="text-sm font-medium text-gray-700 mb-4">Filtros de búsqueda</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Usuario</label>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Script from "next/script";
 import DriveFolderBrowser from "@/components/DriveFolderBrowser";
+import { AppIcon } from "@/components/AppIcon";
 
 type User = {
   id: string;
@@ -255,15 +256,15 @@ export default function WorkspacesPage() {
 
   // Detect type from existing cloudPath for display
   const getPathBadge = (path: string) => {
-    if (path.startsWith("LOCAL:")) return { label: "Local", color: "bg-emerald-100 text-emerald-800", icon: "💻" };
-    if (path.startsWith("Google Drive:")) return { label: "Google Drive", color: "bg-blue-100 text-blue-800", icon: "☁️" };
-    if (path.startsWith("Dropbox:")) return { label: "Dropbox", color: "bg-indigo-100 text-indigo-800", icon: "📦" };
-    if (path.startsWith("Drive:")) return { label: "Google Drive", color: "bg-blue-100 text-blue-800", icon: "☁️" };
-    return { label: "Ruta", color: "bg-gray-100 text-gray-700", icon: "📁" };
+    if (path.startsWith("LOCAL:")) return { label: "Local", color: "bg-emerald-100 text-emerald-800", icon: "workspaces" as const };
+    if (path.startsWith("Google Drive:")) return { label: "Google Drive", color: "bg-blue-100 text-blue-800", icon: "upload" as const };
+    if (path.startsWith("Dropbox:")) return { label: "Dropbox", color: "bg-indigo-100 text-indigo-800", icon: "documents" as const };
+    if (path.startsWith("Drive:")) return { label: "Google Drive", color: "bg-blue-100 text-blue-800", icon: "upload" as const };
+    return { label: "Ruta", color: "bg-gray-100 text-gray-700", icon: "folder" as const };
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page space-y-6">
       {/* Google Identity Services Script */}
       <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
 
@@ -284,7 +285,7 @@ export default function WorkspacesPage() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-indigo-600 px-6 py-4 text-white">
-              <h3 className="text-lg font-semibold">📁 Seleccionar Carpeta de Destino</h3>
+              <h3 className="text-lg font-semibold">Seleccionar carpeta de destino</h3>
               <p className="text-sm text-indigo-200 mt-1">
                 Elige dónde se guardarán los documentos procesados de este espacio.
               </p>
@@ -300,7 +301,7 @@ export default function WorkspacesPage() {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                💻 Carpeta Local
+                Carpeta local
               </button>
               <button
                 onClick={() => setPickerTab("gdrive")}
@@ -310,7 +311,7 @@ export default function WorkspacesPage() {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                ☁️ Google Drive
+                Google Drive
               </button>
               <button
                 onClick={() => setPickerTab("dropbox")}
@@ -320,7 +321,7 @@ export default function WorkspacesPage() {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                📦 Dropbox
+                Dropbox
               </button>
             </div>
 
@@ -400,7 +401,7 @@ export default function WorkspacesPage() {
                   {!isGoogleOauthConfigured && (
                     <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                       <p className="text-xs text-amber-800">
-                        ⚠️ <strong>Configuración pendiente:</strong> Para usar Google Drive, configura las credenciales OAuth
+                        <strong>Configuración pendiente:</strong> Para usar Google Drive, configura las credenciales OAuth
                         en Configuración o en las variables de entorno.
                       </p>
                     </div>
@@ -453,7 +454,7 @@ export default function WorkspacesPage() {
             <div className="px-6 pb-3">
               <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                 <p className="text-xs text-amber-800">
-                  🔒 <strong>Seguridad:</strong> Independientemente de la ubicación, cada PDF será 
+                  <strong>Seguridad:</strong> Independientemente de la ubicación, cada PDF será
                   encriptado con la contraseña del espacio (o la política específica si coincide). 
                   La encriptación ocurre <strong>antes</strong> de guardar el archivo.
                 </p>
@@ -544,7 +545,7 @@ export default function WorkspacesPage() {
 
       {/* ── Page Header ──────────────────────────── */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900">Espacios de Trabajo (Silos Lógicos)</h3>
+        <h3 className="text-lg font-medium text-gray-900">Espacios de trabajo</h3>
         <p className="mt-2 text-sm text-gray-500">
           Crea ecosistemas independientes. Cada espacio posee una ruta destino (local o nube) y una contraseña base 
           de encriptación que protege todo documento procesado en ese espacio.
@@ -554,7 +555,7 @@ export default function WorkspacesPage() {
       {/* ── Create + Table ───────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-md font-medium text-gray-900 mb-4">Crear Espacio</h4>
+          <h4 className="text-md font-medium text-gray-900 mb-4">Crear espacio</h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre del Espacio</label>
@@ -577,13 +578,14 @@ export default function WorkspacesPage() {
                   onClick={openFolderPicker}
                   className="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  <span>📁 Elegir Carpeta</span>
+                  <AppIcon name="folder" />
+                  <span>Elegir carpeta</span>
                 </button>
               </div>
               {cloudPath && (
                 <div className="mt-2 flex items-center space-x-2">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPathBadge(cloudPath).color}`}>
-                    {getPathBadge(cloudPath).icon} {getPathBadge(cloudPath).label}
+                    <AppIcon name={getPathBadge(cloudPath).icon} /> {getPathBadge(cloudPath).label}
                   </span>
                   <span className="text-xs text-gray-500 truncate">{cloudPath.replace(/^(LOCAL:|Google Drive:|Dropbox:|Drive:)\s*/, "")}</span>
                 </div>
@@ -627,7 +629,7 @@ export default function WorkspacesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
-                        {badge.icon} {badge.label}
+                        <AppIcon name={badge.icon} /> {badge.label}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

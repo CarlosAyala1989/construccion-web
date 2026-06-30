@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getActiveRequestUser, getAuthorizedWorkspace, getUploadCredentialForUser } from "@/lib/document-access";
 import { getWorkspaceProvider, sanitizePdfFileName, writeLocalPdf } from "@/lib/document-storage";
-import { getDriveAccessToken, getGoogleDriveErrorStatus, uploadDrivePdf } from "@/lib/google-drive";
+import { DRIVE_FOLDER_MIME_TYPE, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus, isDriveItemWithinFolder, uploadDrivePdf } from "@/lib/google-drive";
 import { encryptPdfForStorage } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const workspaceId = String(formData.get("workspaceId") || "");
+    const requestedFolderId = String(formData.get("folderId") || "");
     const credentialKey = formData.get("credentialKey") ? String(formData.get("credentialKey")) : null;
     const file = formData.get("file");
 
@@ -54,9 +55,18 @@ export async function POST(request: NextRequest) {
 
     if (provider === "GOOGLE_DRIVE") {
       const accessToken = await getDriveAccessToken(workspace.cloudRefreshToken || "");
-      storedFile = await uploadDrivePdf(workspace.cloudFolderId || "", fileName, encryptedPdf, accessToken);
+      const rootFolderId = workspace.cloudFolderId || "";
+      const folderId = requestedFolderId || rootFolderId;
+      const allowed = await isDriveItemWithinFolder(folderId, rootFolderId, accessToken);
+      const folderMetadata = folderId === rootFolderId
+        ? null
+        : await getDriveFileMetadata(folderId, accessToken);
+      if (!allowed || (folderMetadata && folderMetadata.mimeType !== DRIVE_FOLDER_MIME_TYPE)) {
+        return NextResponse.json({ error: "Carpeta fuera del espacio autorizado" }, { status: 403 });
+      }
+      storedFile = await uploadDrivePdf(folderId, fileName, encryptedPdf, accessToken);
     } else if (provider === "LOCAL") {
-      storedFile = await writeLocalPdf(workspace, fileName, encryptedPdf);
+      storedFile = await writeLocalPdf(workspace, fileName, encryptedPdf, requestedFolderId);
     } else {
       return NextResponse.json(
         { error: "Este espacio no tiene un repositorio web compatible configurado." },

@@ -1,9 +1,10 @@
 "use client";
 
+import { AppIcon } from "@/components/AppIcon";
 import { getSession, signIn } from "next-auth/react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Script from "next/script";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 declare global {
   interface Window {
@@ -18,30 +19,31 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const captchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
 
     if (!captchaSiteKey) {
-      setError("CAPTCHA no configurado. Falta NEXT_PUBLIC_RECAPTCHA_SITE_KEY.");
+      setError("El acceso seguro aún no está configurado. Contacta al administrador.");
       return;
     }
 
     const captchaToken = window.grecaptcha?.getResponse();
     if (!captchaToken) {
-      setError("Marca el CAPTCHA antes de iniciar sesión.");
+      setError("Confirma que no eres un robot antes de continuar.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const res = await signIn("credentials", {
+      const response = await signIn("credentials", {
         redirect: false,
         email,
         password,
@@ -49,77 +51,106 @@ export default function LoginPage() {
         totpCode,
       });
 
-      if (res?.error) {
-        setError(res.error);
+      if (response?.error) {
+        setError(response.error);
         window.grecaptcha?.reset();
-      } else {
-        const session = await getSession();
-        router.push(session?.user?.role === "ADMIN" ? "/dashboard" : "/documents");
+        return;
       }
+
+      const session = await getSession();
+      router.push(session?.user?.role === "ADMIN" ? "/dashboard" : "/documents");
     } catch {
-      setError("Error inesperado al iniciar sesión.");
+      setError("No se pudo iniciar sesión. Inténtalo nuevamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+    <main className="login-shell">
       {captchaSiteKey && (
         <Script src="https://www.google.com/recaptcha/api.js" strategy="afterInteractive" />
       )}
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-10 shadow-lg">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Administración SaaS
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Plataforma de Gobernanza Documental Inteligente
+
+      <section className="login-story" aria-label="Plataforma de gobernanza documental">
+        <div className="login-brand">
+          <span className="brand-mark" aria-hidden="true" />
+          <span>Gobernanza Documental</span>
+        </div>
+
+        <div className="login-story-content">
+          <p className="login-kicker">Control documental para tu organización</p>
+          <h1>Protege cada documento. Entiende cada acceso.</h1>
+          <p className="login-story-copy">
+            Centraliza documentos, permisos y trazabilidad en una experiencia clara para
+            administradores y equipos de trabajo.
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-              {error}
-            </div>
-          )}
-          <div className="space-y-4 rounded-md shadow-sm">
+
+        <div className="login-story-footer" aria-label="Capacidades principales">
+          <span><AppIcon name="shield" /> Acceso protegido</span>
+          <span><AppIcon name="workspaces" /> Espacios organizados</span>
+          <span><AppIcon name="activity" /> Historial verificable</span>
+        </div>
+      </section>
+
+      <section className="login-form-side">
+        <div className="login-card">
+          <h2>Inicia sesión</h2>
+          <p className="login-intro">Accede con las credenciales asignadas por tu administrador.</p>
+
+          <form className="form-stack" onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className="form-alert" role="alert" aria-live="polite">
+                <AppIcon name="alert" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <div>
-              <label htmlFor="email-address" className="sr-only">
-                Correo Electrónico
-              </label>
+              <label htmlFor="email-address" className="field-label">Correo electrónico</label>
               <input
                 id="email-address"
                 name="email"
                 type="email"
                 autoComplete="email"
+                inputMode="email"
                 required
-                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 bg-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                placeholder="Correo Electrónico (ej. admin@empresa.com)"
+                className="field-control"
+                placeholder="nombre@empresa.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
               />
             </div>
+
             <div>
-              <label htmlFor="password" className="sr-only">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 bg-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <label htmlFor="password" className="field-label">Contraseña</label>
+              <div className="password-control">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  className="field-control"
+                  placeholder="Ingresa tu contraseña"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(current => !current)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-pressed={showPassword}
+                >
+                  <AppIcon name={showPassword ? "eyeOff" : "eye"} />
+                </button>
+              </div>
             </div>
+
             <div>
-              <label htmlFor="totp-code" className="sr-only">
-                Código Authenticator
-              </label>
+              <label htmlFor="totp-code" className="field-label">Código de verificación</label>
               <input
                 id="totp-code"
                 name="totpCode"
@@ -128,35 +159,39 @@ export default function LoginPage() {
                 pattern="[0-9]*"
                 maxLength={6}
                 autoComplete="one-time-code"
-                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 bg-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                placeholder="Código Authenticator de 6 dígitos"
+                className="field-control"
+                placeholder="6 dígitos"
                 value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                aria-describedby="totp-help"
               />
+              <p id="totp-help" className="field-hint">
+                Déjalo vacío si tu cuenta aún no usa Authenticator.
+              </p>
             </div>
-          </div>
 
-          {captchaSiteKey ? (
-            <div className="flex justify-center">
-              <div className="g-recaptcha" data-sitekey={captchaSiteKey}></div>
-            </div>
-          ) : (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              CAPTCHA pendiente de configuración. Define NEXT_PUBLIC_RECAPTCHA_SITE_KEY.
-            </div>
-          )}
+            {captchaSiteKey ? (
+              <div className="captcha-wrap">
+                <div className="g-recaptcha" data-sitekey={captchaSiteKey} />
+              </div>
+            ) : (
+              <div className="form-alert warning" role="status">
+                <AppIcon name="alert" />
+                <span>El acceso está pendiente de configuración por el administrador.</span>
+              </div>
+            )}
 
-          <div>
             <button
               type="submit"
               disabled={isLoading || !captchaSiteKey}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400"
+              className="primary-button login-submit"
             >
-              {isLoading ? "Ingresando..." : "Iniciar Sesión"}
+              {isLoading && <span className="spinner" aria-hidden="true" />}
+              {isLoading ? "Verificando acceso…" : "Continuar"}
             </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </form>
+        </div>
+      </section>
+    </main>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { AppIcon } from "@/components/AppIcon";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,18 @@ type DocumentFile = {
   provider: string;
   size?: string;
   modifiedTime?: string;
+};
+
+type DocumentFolder = {
+  id: string;
+  name: string;
+  provider: string;
+  modifiedTime?: string;
+};
+
+type FolderBreadcrumb = {
+  id: string;
+  name: string;
 };
 
 type PasswordOption = {
@@ -40,6 +53,9 @@ export default function DocumentsPage() {
   const router = useRouter();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
+  const [currentFolderId, setCurrentFolderId] = useState("");
+  const [breadcrumbs, setBreadcrumbs] = useState<FolderBreadcrumb[]>([]);
+  const [folders, setFolders] = useState<DocumentFolder[]>([]);
   const [documents, setDocuments] = useState<DocumentFile[]>([]);
   const [passwordOptions, setPasswordOptions] = useState<PasswordOption[]>([]);
   const [selectedCredentialKey, setSelectedCredentialKey] = useState("");
@@ -57,29 +73,37 @@ export default function DocumentsPage() {
   );
   const canUpload = session?.user?.role === "ADMIN";
 
-  const refreshDocuments = useCallback(async (workspaceId = selectedWorkspaceId) => {
+  const refreshDocuments = useCallback(async (
+    workspaceId = selectedWorkspaceId,
+    folderId = currentFolderId,
+  ) => {
     if (!workspaceId) return;
     await Promise.resolve();
     setIsLoadingDocuments(true);
     setMessage("");
 
     try {
-      const res = await fetch(`/api/documents?workspaceId=${encodeURIComponent(workspaceId)}`);
+      const params = new URLSearchParams({ workspaceId });
+      if (folderId) params.set("folderId", folderId);
+      const res = await fetch(`/api/documents?${params.toString()}`);
       const data = await res.json();
 
       if (!res.ok) {
+        setFolders([]);
         setDocuments([]);
         setMessage(data.error || "No se pudieron listar los documentos.");
         return;
       }
 
+      setFolders(data.folders || []);
       setDocuments(data.files || []);
     } catch {
+      setFolders([]);
       setMessage("No se pudieron listar los documentos.");
     } finally {
       setIsLoadingDocuments(false);
     }
-  }, [selectedWorkspaceId]);
+  }, [currentFolderId, selectedWorkspaceId]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -108,20 +132,12 @@ export default function DocumentsPage() {
     if (!selectedWorkspaceId) return;
     const workspaceId = selectedWorkspaceId;
 
-    fetch(`/api/documents?workspaceId=${encodeURIComponent(workspaceId)}`)
-      .then(async res => {
-        const data = await res.json();
+    void Promise.resolve().then(() => refreshDocuments(workspaceId, currentFolderId));
+  }, [currentFolderId, refreshDocuments, selectedWorkspaceId]);
 
-        if (!res.ok) {
-          setDocuments([]);
-          setMessage(data.error || "No se pudieron listar los documentos.");
-          return;
-        }
-
-        setDocuments(data.files || []);
-      })
-      .catch(() => setMessage("No se pudieron listar los documentos."))
-      .finally(() => setIsLoadingDocuments(false));
+  useEffect(() => {
+    if (!selectedWorkspaceId) return;
+    const workspaceId = selectedWorkspaceId;
 
     fetch(`/api/documents/password-options?workspaceId=${encodeURIComponent(workspaceId)}`)
       .then(async res => {
@@ -135,6 +151,26 @@ export default function DocumentsPage() {
         setSelectedCredentialKey("");
       });
   }, [selectedWorkspaceId]);
+
+  const handleOpenFolder = (folder: DocumentFolder) => {
+    setIsLoadingDocuments(true);
+    setCurrentFolderId(folder.id);
+    setBreadcrumbs(current => [...current, { id: folder.id, name: folder.name }]);
+    setActivePdf(null);
+  };
+
+  const handleBreadcrumb = (index: number) => {
+    setIsLoadingDocuments(true);
+    if (index < 0) {
+      setCurrentFolderId("");
+      setBreadcrumbs([]);
+    } else {
+      const target = breadcrumbs[index];
+      setCurrentFolderId(target.id);
+      setBreadcrumbs(current => current.slice(0, index + 1));
+    }
+    setActivePdf(null);
+  };
 
   const handleView = async (file: DocumentFile) => {
     if (!selectedWorkspaceId) return;
@@ -180,6 +216,7 @@ export default function DocumentsPage() {
     formData.append("workspaceId", selectedWorkspaceId);
     formData.append("credentialKey", selectedCredentialKey);
     formData.append("file", uploadFile);
+    if (currentFolderId) formData.append("folderId", currentFolderId);
 
     try {
       const res = await fetch("/api/documents/upload", {
@@ -195,7 +232,7 @@ export default function DocumentsPage() {
 
       setUploadFile(null);
       setMessage("Documento subido y cifrado correctamente.");
-      await refreshDocuments(selectedWorkspaceId);
+      await refreshDocuments(selectedWorkspaceId, currentFolderId);
     } catch {
       setMessage("No se pudo subir el documento.");
     } finally {
@@ -223,8 +260,8 @@ export default function DocumentsPage() {
 
   if (status === "loading" || isLoadingWorkspaces) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-sm text-gray-500">Cargando documentos...</p>
+      <div className="loading-state" role="status">
+        <div><span className="spinner" aria-hidden="true" /> Preparando documentos…</div>
       </div>
     );
   }
@@ -232,12 +269,15 @@ export default function DocumentsPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Documentos Web</h1>
+    <div className="documents-shell min-h-screen bg-gray-50">
+      <header className="documents-topbar bg-white border-b border-gray-200">
+        <div className="documents-topbar-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="documents-brand">
+            <span className="brand-mark" aria-hidden="true" />
+            <div>
+            <h1 className="text-lg font-semibold text-gray-900">Gobernanza Documental</h1>
             <p className="text-xs text-gray-500">{session.user?.name || session.user?.email}</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {session.user?.role === "ADMIN" && (
@@ -245,7 +285,7 @@ export default function DocumentsPage() {
                 href="/dashboard"
                 className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Panel admin
+                Administración
               </Link>
             )}
             <button
@@ -258,7 +298,11 @@ export default function DocumentsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="documents-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <header className="documents-page-heading">
+          <h2>Biblioteca de documentos</h2>
+          <p>Busca, abre y protege los archivos autorizados de cada espacio de trabajo.</p>
+        </header>
         <section className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
@@ -268,6 +312,11 @@ export default function DocumentsPage() {
                 onChange={event => {
                   setIsLoadingDocuments(true);
                   setSelectedWorkspaceId(event.target.value);
+                  setCurrentFolderId("");
+                  setBreadcrumbs([]);
+                  setFolders([]);
+                  setDocuments([]);
+                  setActivePdf(null);
                 }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-indigo-500"
               >
@@ -286,11 +335,12 @@ export default function DocumentsPage() {
                 <p className="text-xs text-gray-500 truncate max-w-xl">{selectedWorkspace?.cloudPath || "Sin espacio asignado"}</p>
               </div>
               <button
-                onClick={() => refreshDocuments()}
+                onClick={() => refreshDocuments(selectedWorkspaceId, currentFolderId)}
                 disabled={!selectedWorkspaceId || isLoadingDocuments}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                {isLoadingDocuments ? "Actualizando..." : "Actualizar"}
+                <AppIcon name="refresh" />
+                {isLoadingDocuments ? "Actualizando…" : "Actualizar"}
               </button>
             </div>
           </div>
@@ -336,24 +386,51 @@ export default function DocumentsPage() {
                 <button
                   type="submit"
                   disabled={isUploading || !uploadFile || passwordOptions.length === 0 || selectedWorkspace?.provider === "UNSUPPORTED"}
-                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-300"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-300"
                 >
-                  {isUploading ? "Subiendo..." : "Cifrar y subir"}
+                  <AppIcon name="upload" />
+                  {isUploading ? "Subiendo…" : "Proteger y subir"}
                 </button>
+                <p className="text-xs text-gray-500">
+                  El documento se guardará en la carpeta que estás viendo.
+                </p>
               </form>
             </div>
           )}
 
           <div className={`${canUpload ? "xl:col-span-2" : ""} bg-white border border-gray-200 rounded-lg overflow-hidden`}>
             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Documentos disponibles</h2>
-              <span className="text-xs text-gray-500">{documents.length} documento(s)</span>
+              <h2 className="text-base font-semibold text-gray-900">Contenido de la carpeta</h2>
+              <span className="text-xs text-gray-500">
+                {folders.length} carpeta(s), {documents.length} documento(s)
+              </span>
             </div>
+            <nav className="px-5 py-3 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center gap-1 text-sm" aria-label="Ruta de carpetas">
+              <button
+                type="button"
+                onClick={() => handleBreadcrumb(-1)}
+                className="font-medium text-indigo-700 hover:text-indigo-900"
+              >
+                {selectedWorkspace?.name || "Raíz"}
+              </button>
+              {breadcrumbs.map((folder, index) => (
+                <span key={folder.id} className="flex items-center gap-1">
+                  <span className="text-gray-400">/</span>
+                  <button
+                    type="button"
+                    onClick={() => handleBreadcrumb(index)}
+                    className="font-medium text-indigo-700 hover:text-indigo-900"
+                  >
+                    {folder.name}
+                  </button>
+                </span>
+              ))}
+            </nav>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Documento</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
                     <th className="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Actualizado</th>
                     <th className="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Tamaño</th>
                     <th className="px-5 py-3 text-right text-xs font-medium uppercase text-gray-500">Acción</th>
@@ -364,29 +441,57 @@ export default function DocumentsPage() {
                     <tr>
                       <td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">Cargando documentos...</td>
                     </tr>
-                  ) : documents.length === 0 ? (
+                  ) : folders.length === 0 && documents.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No hay PDFs en este espacio.</td>
+                      <td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">Esta carpeta está vacía.</td>
                     </tr>
                   ) : (
-                    documents.map(file => (
-                      <tr key={file.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-sm truncate" title={file.name}>
-                          {file.name}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(file.modifiedTime)}</td>
-                        <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatSize(file.size)}</td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            onClick={() => handleView(file)}
-                            disabled={isViewing}
-                            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 disabled:bg-gray-400"
-                          >
-                            Ver
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    <>
+                      {folders.map(folder => (
+                        <tr key={`folder-${folder.id}`} className="hover:bg-indigo-50">
+                          <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-sm truncate" title={folder.name}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenFolder(folder)}
+                              className="flex items-center gap-2 text-left hover:text-indigo-700"
+                            >
+                              <AppIcon name="folder" />
+                              <span>{folder.name}</span>
+                            </button>
+                          </td>
+                          <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(folder.modifiedTime)}</td>
+                          <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">Carpeta</td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenFolder(folder)}
+                              className="rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                            >
+                              Abrir
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {documents.map(file => (
+                        <tr key={`file-${file.id}`} className="hover:bg-gray-50">
+                          <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-sm truncate" title={file.name}>
+                            <AppIcon name="file" className="mr-2" />
+                            {file.name}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(file.modifiedTime)}</td>
+                          <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatSize(file.size)}</td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              onClick={() => handleView(file)}
+                              disabled={isViewing}
+                              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 disabled:bg-gray-400"
+                            >
+                              Ver
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </>
                   )}
                 </tbody>
               </table>

@@ -9,7 +9,7 @@ import {
   getCandidatePasswordsForUser,
 } from "@/lib/document-access";
 import { getWorkspaceProvider, readLocalPdf } from "@/lib/document-storage";
-import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus } from "@/lib/google-drive";
+import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus, isDriveItemWithinFolder } from "@/lib/google-drive";
 import { getPdfProcessingErrorStatus, renderPdfImagesForViewing } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
@@ -47,8 +47,13 @@ export async function GET(request: NextRequest) {
     if (provider === "GOOGLE_DRIVE") {
       const accessToken = await getDriveAccessToken(workspace.cloudRefreshToken || "");
       const metadata = await getDriveFileMetadata(fileId, accessToken);
+      const allowed = await isDriveItemWithinFolder(
+        fileId,
+        workspace.cloudFolderId || "",
+        accessToken,
+      );
 
-      if (metadata.mimeType !== "application/pdf" || !metadata.parents?.includes(workspace.cloudFolderId || "")) {
+      if (metadata.mimeType !== "application/pdf" || !allowed) {
         return NextResponse.json({ error: "Documento fuera del espacio autorizado" }, { status: 403 });
       }
 

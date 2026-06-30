@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { AppIcon } from "@/components/AppIcon";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 type RecentLog = {
   id: string;
@@ -29,105 +31,141 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch("/api/stats")
-      .then(res => res.json())
-      .then(data => {
-        setStats(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+      .then(response => response.json())
+      .then(data => setStats(data))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString("es-MX", {
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const formatDate = (date: string) => new Date(date).toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Cargando estadísticas...</p>
+      <div className="empty-state" role="status">
+        <div><span className="spinner" aria-hidden="true" /> Cargando resumen…</div>
       </div>
     );
   }
 
+  const metrics = [
+    {
+      label: "Usuarios activos",
+      value: stats?.activeUsers ?? 0,
+      note: `${stats?.inactiveUsers ?? 0} cuentas desactivadas`,
+      icon: "users" as const,
+    },
+    {
+      label: "Espacios de trabajo",
+      value: stats?.totalWorkspaces ?? 0,
+      note: "Áreas documentales configuradas",
+      icon: "workspaces" as const,
+    },
+    {
+      label: "Políticas activas",
+      value: stats?.totalPolicies ?? 0,
+      note: "Reglas de protección configuradas",
+      icon: "shield" as const,
+    },
+    {
+      label: "Eventos registrados",
+      value: stats?.totalLogs ?? 0,
+      note: `${stats?.successLogs ?? 0} correctos · ${stats?.failureLogs ?? 0} con error`,
+      icon: "activity" as const,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900">Panel de Control Principal</h3>
-        <p className="mt-2 text-sm text-gray-500">
-          Desde aquí puedes gestionar las políticas globales de seguridad, usuarios y revisar la auditoría forense.
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-base font-medium text-indigo-600">Usuarios Activos</h4>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.activeUsers ?? 0}</p>
-          <p className="mt-1 text-sm text-gray-500">
-            {stats?.inactiveUsers ?? 0} desactivados (Soft Delete)
-          </p>
+    <div>
+      <header className="page-heading">
+        <div>
+          <p className="page-eyebrow">Vista general</p>
+          <h1>Todo bajo control.</h1>
+          <p>Revisa el estado de la plataforma y accede a las tareas más frecuentes.</p>
         </div>
+        <Link href="/documents" className="primary-button">
+          Abrir documentos
+          <AppIcon name="chevronRight" />
+        </Link>
+      </header>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-base font-medium text-indigo-600">Espacios de Trabajo</h4>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.totalWorkspaces ?? 0}</p>
-          <p className="mt-1 text-sm text-gray-500">Silos lógicos configurados</p>
-        </div>
+      <section className="metrics-grid" aria-label="Indicadores principales">
+        {metrics.map(metric => (
+          <article className="metric-card" key={metric.label}>
+            <div className="metric-card-top">
+              <span className="metric-card-label">{metric.label}</span>
+              <span className="metric-icon"><AppIcon name={metric.icon} /></span>
+            </div>
+            <p className="metric-card-value">{metric.value}</p>
+            <p className="metric-card-note">{metric.note}</p>
+          </article>
+        ))}
+      </section>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-base font-medium text-indigo-600">Reglas de Seguridad</h4>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.totalPolicies ?? 0}</p>
-          <p className="mt-1 text-sm text-gray-500">Políticas criptográficas activas</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-base font-medium text-indigo-600">Registros de Auditoría</h4>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.totalLogs ?? 0}</p>
-          <div className="mt-1 flex space-x-3 text-sm">
-            <span className="text-green-600">✓ {stats?.successLogs ?? 0}</span>
-            <span className="text-red-600">✗ {stats?.failureLogs ?? 0}</span>
+      <div className="dashboard-grid">
+        <section className="dashboard-panel" aria-labelledby="activity-title">
+          <div className="panel-header">
+            <h2 id="activity-title">Actividad reciente</h2>
+            <Link href="/dashboard/logs" className="panel-link">Ver historial completo</Link>
           </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <h4 className="text-md font-medium text-gray-900">Actividad Reciente</h4>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {(!stats?.recentLogs || stats.recentLogs.length === 0) ? (
-            <div className="p-6 text-center text-sm text-gray-500">
-              No hay actividad registrada aún. Los registros aparecerán aquí cuando el cliente de escritorio sincronice operaciones.
+          {!stats?.recentLogs?.length ? (
+            <div className="empty-state">
+              <p>Aún no hay actividad. Los eventos aparecerán cuando el equipo use la plataforma.</p>
             </div>
           ) : (
-            stats.recentLogs.map(log => (
-              <div key={log.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50">
-                <div className="flex items-center space-x-3">
-                  <span className={`w-2 h-2 rounded-full ${log.status === 'SUCCESS' ? 'bg-green-400' : 'bg-red-400'}`} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{log.action}</p>
-                    <p className="text-xs text-gray-500">{log.userName || "Sistema"}</p>
+            <div className="activity-list">
+              {stats.recentLogs.map(log => (
+                <div className="activity-row" key={log.id}>
+                  <span className={`activity-status ${log.status === "SUCCESS" ? "" : "failure"}`} aria-label={log.status === "SUCCESS" ? "Correcto" : "Con error"} />
+                  <div className="activity-main">
+                    <strong>{log.action}</strong>
+                    <span>{log.userName || "Sistema"}{log.workspace ? ` · ${log.workspace.name}` : ""}</span>
                   </div>
+                  <time className="activity-meta" dateTime={log.createdAt}>{formatDate(log.createdAt)}</time>
                 </div>
-                <div className="text-right">
-                  {log.workspace && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                      {log.workspace.name}
-                    </span>
-                  )}
-                  <span className="text-xs text-gray-400">{formatDate(log.createdAt)}</span>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
-        </div>
+        </section>
+
+        <section className="dashboard-panel" aria-labelledby="quick-links-title">
+          <div className="panel-header">
+            <h2 id="quick-links-title">Accesos rápidos</h2>
+          </div>
+          <div className="quick-links">
+            <QuickLink href="/documents" icon="documents" title="Documentos" description="Consulta y protege archivos" />
+            <QuickLink href="/dashboard/users" icon="users" title="Usuarios" description="Administra roles y permisos" />
+            <QuickLink href="/dashboard/workspaces" icon="workspaces" title="Espacios" description="Organiza áreas de trabajo" />
+            <QuickLink href="/dashboard/policies" icon="shield" title="Políticas" description="Define reglas de protección" />
+          </div>
+        </section>
       </div>
     </div>
+  );
+}
+
+function QuickLink({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: "documents" | "users" | "workspaces" | "shield";
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link href={href} className="quick-link">
+      <span className="quick-link-icon"><AppIcon name={icon} /></span>
+      <span className="quick-link-copy">
+        <strong>{title}</strong>
+        <span>{description}</span>
+      </span>
+      <AppIcon name="chevronRight" />
+    </Link>
   );
 }

@@ -333,7 +333,7 @@ export default function UsersPage() {
     });
 
     if (res.ok) {
-      setResetMessage("✅ Contraseña actualizada exitosamente.");
+      setResetMessage("Contraseña actualizada correctamente.");
       setNewPassword("");
       setTimeout(() => {
         setResetUserId(null);
@@ -341,7 +341,7 @@ export default function UsersPage() {
       }, 2000);
     } else {
       const data = await res.json();
-      setResetMessage(`❌ ${data.error || "Error al resetear contraseña."}`);
+      setResetMessage(data.error || "No se pudo restablecer la contraseña.");
     }
   };
 
@@ -362,7 +362,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page space-y-6">
       {/* Password Reset Modal */}
       {resetUserId && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
@@ -387,7 +387,7 @@ export default function UsersPage() {
                 />
               </div>
               {resetMessage && (
-                <div className={`text-sm p-3 rounded-md ${resetMessage.includes("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                <div className={`text-sm p-3 rounded-md ${resetMessage.includes("correctamente") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                   {resetMessage}
                 </div>
               )}
@@ -644,16 +644,15 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900">Gestión de Empleados y Seguridad (Zero Trust)</h3>
+        <h3 className="text-lg font-medium text-gray-900">Usuarios y accesos</h3>
         <p className="mt-2 text-sm text-gray-500">
-          Crea empleados manualmente y asigna sus espacios de trabajo. No se permiten registros automáticos.
-          Puedes forzar la rotación de contraseñas en cualquier momento.
+          Crea cuentas, asigna espacios de trabajo y controla cómo accede cada persona a los documentos.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-md font-medium text-gray-900 mb-4">Crear Nuevo Empleado</h4>
+          <h4 className="text-md font-medium text-gray-900 mb-4">Crear usuario</h4>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre</label>
@@ -749,87 +748,89 @@ export default function UsersPage() {
 
         <div className="md:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h4 className="text-md font-medium text-gray-900">Directorio de Usuarios</h4>
+            <h4 className="text-md font-medium text-gray-900">Directorio de usuarios</h4>
           </div>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado / Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Espacios (Silos)</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
-              ) : users.map(user => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {user.isActive ? 'Activo' : 'Baja (Soft Delete)'}
-                    </span>
-                    <div className="text-xs text-gray-500 mt-1">{user.role}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {user.accessRole === "WEB_VIEWER" ? "Visor web" : "Operador escritorio"}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {user.accessRole === "WEB_VIEWER"
-                        ? user.documentAccessMode === "GLOBAL" ? "Acceso global" : `${user.documentPasswordGrants?.length || 0} contraseña(s)`
-                        : "Sin acceso web a documentos"}
-                    </div>
-                    <div className={`text-xs mt-1 ${user.twoFactorEnabled ? "text-green-700" : "text-amber-700"}`}>
-                      Authenticator: {user.twoFactorEnabled ? "Activo" : "Inactivo"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {user.workspaces.map(ws => (
-                        <span key={ws.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          {ws.name}
-                        </span>
-                      ))}
-                      {user.workspaces.length === 0 && <span className="text-xs text-gray-400">Sin acceso</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                    <button
-                      onClick={() => openAuthenticatorModal(user)}
-                      className="text-emerald-700 hover:text-emerald-900"
-                    >
-                      Authenticator
-                    </button>
-                    {user.role !== 'ADMIN' && (
-                      <>
-                        <button
-                          onClick={() => openResetModal(user.id, user.name)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          Resetear Clave
-                        </button>
-                        <button
-                          onClick={() => openAccessModal(user)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Editar Acceso
-                        </button>
-                        <button 
-                          onClick={() => toggleUserStatus(user.id, user.isActive)}
-                          className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                        >
-                          {user.isActive ? 'Dar de Baja' : 'Reactivar'}
-                        </button>
-                      </>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado / Rol</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Espacios asignados</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {isLoading ? (
+                  <tr><td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
+                ) : users.map(user => (
+                  <tr key={user.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {user.isActive ? 'Activo' : 'Desactivado'}
+                      </span>
+                      <div className="text-xs text-gray-500 mt-1">{user.role}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {user.accessRole === "WEB_VIEWER" ? "Visor web" : "Operador escritorio"}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {user.accessRole === "WEB_VIEWER"
+                          ? user.documentAccessMode === "GLOBAL" ? "Acceso global" : `${user.documentPasswordGrants?.length || 0} contraseña(s)`
+                          : "Sin acceso web a documentos"}
+                      </div>
+                      <div className={`text-xs mt-1 ${user.twoFactorEnabled ? "text-green-700" : "text-amber-700"}`}>
+                        Authenticator: {user.twoFactorEnabled ? "Activo" : "Inactivo"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {user.workspaces.map(ws => (
+                          <span key={ws.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            {ws.name}
+                          </span>
+                        ))}
+                        {user.workspaces.length === 0 && <span className="text-xs text-gray-400">Sin acceso</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                      <button
+                        onClick={() => openAuthenticatorModal(user)}
+                        className="text-emerald-700 hover:text-emerald-900"
+                      >
+                        Authenticator
+                      </button>
+                      {user.role !== 'ADMIN' && (
+                        <>
+                          <button
+                            onClick={() => openResetModal(user.id, user.name)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            Resetear Clave
+                          </button>
+                          <button
+                            onClick={() => openAccessModal(user)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Editar Acceso
+                          </button>
+                          <button 
+                            onClick={() => toggleUserStatus(user.id, user.isActive)}
+                            className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                          >
+                            {user.isActive ? 'Dar de Baja' : 'Reactivar'}
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
