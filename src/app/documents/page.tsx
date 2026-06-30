@@ -275,7 +275,7 @@ export default function DocumentsPage() {
           <div className="documents-brand">
             <span className="brand-mark" aria-hidden="true" />
             <div>
-            <h1 className="text-lg font-semibold text-gray-900">Gobernanza Documental</h1>
+            <h1 className="text-lg font-semibold text-gray-900">DocuZen</h1>
             <p className="text-xs text-gray-500">{session.user?.name || session.user?.email}</p>
             </div>
           </div>

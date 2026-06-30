@@ -4,8 +4,8 @@ import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: {
-    default: "Gobernanza Documental",
-    template: "%s · Gobernanza Documental",
+    default: "DocuZen",
+    template: "%s · DocuZen",
   },
   description: "Gestión segura de documentos, accesos y trazabilidad.",
 };

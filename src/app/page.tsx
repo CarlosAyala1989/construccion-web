@@ -75,7 +75,7 @@ export default function LoginPage() {
       <section className="login-story" aria-label="Plataforma de gobernanza documental">
         <div className="login-brand">
           <span className="brand-mark" aria-hidden="true" />
-          <span>Gobernanza Documental</span>
+          <span>DocuZen</span>
         </div>
 
         <div className="login-story-content">
