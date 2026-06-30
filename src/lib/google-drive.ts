@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 const GOOGLE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 export const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+export const DRIVE_SHA256_PROPERTY = "sha256";
 
 export type DrivePdfFile = {
   id: string;
@@ -13,6 +14,7 @@ export type DrivePdfFile = {
   size?: string;
   modifiedTime?: string;
   webViewLink?: string;
+  appProperties?: Record<string, string>;
 };
 
 export type DriveFolderItem = DrivePdfFile;
@@ -168,7 +170,7 @@ export async function listDriveFolder(folderId: string, accessToken: string) {
 
 export async function getDriveFileMetadata(fileId: string, accessToken: string) {
   const params = new URLSearchParams({
-    fields: "id,name,mimeType,size,parents,modifiedTime",
+    fields: "id,name,mimeType,size,parents,modifiedTime,appProperties",
     supportsAllDrives: "true",
   });
 
@@ -232,19 +234,60 @@ export async function downloadDriveFile(fileId: string, accessToken: string) {
 }
 
 export async function uploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, accessToken: string) {
-  if (pdfBuffer.byteLength < 5 * 1024 * 1024) {
-    return simpleUploadDrivePdf(folderId, fileName, pdfBuffer, accessToken);
-  }
+  const sha256 = calculateSha256(pdfBuffer);
+  const storedFile = pdfBuffer.byteLength < 5 * 1024 * 1024
+    ? await simpleUploadDrivePdf(folderId, fileName, pdfBuffer, sha256, accessToken)
+    : await resumableUploadDrivePdf(folderId, fileName, pdfBuffer, sha256, accessToken);
 
-  return resumableUploadDrivePdf(folderId, fileName, pdfBuffer, accessToken);
+  return { ...storedFile, sha256 };
 }
 
-async function simpleUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, accessToken: string) {
+export function calculateSha256(fileBuffer: Buffer) {
+  return createHash("sha256").update(fileBuffer).digest("hex");
+}
+
+export function verifyDriveFileSha256(fileBuffer: Buffer, expectedSha256?: string) {
+  if (!expectedSha256) {
+    throw new GoogleDriveError(
+      "No se puede verificar la integridad del archivo porque no tiene una huella SHA-256 registrada.",
+      409,
+      "sha256_missing"
+    );
+  }
+
+  const normalizedExpected = expectedSha256.toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalizedExpected)) {
+    throw new GoogleDriveError(
+      "La huella SHA-256 registrada no es válida. El archivo no puede abrirse de forma segura.",
+      409,
+      "sha256_invalid"
+    );
+  }
+
+  const actualSha256 = calculateSha256(fileBuffer);
+  const matches = timingSafeEqual(
+    Buffer.from(actualSha256, "hex"),
+    Buffer.from(normalizedExpected, "hex")
+  );
+
+  if (!matches) {
+    throw new GoogleDriveError(
+      "El archivo fue modificado y no es el mismo que se envió originalmente. La verificación SHA-256 falló.",
+      409,
+      "sha256_mismatch"
+    );
+  }
+
+  return actualSha256;
+}
+
+async function simpleUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, sha256: string, accessToken: string) {
   const boundary = `gobernanza_${randomUUID()}`;
   const metadata = {
     name: fileName,
     parents: [folderId],
     mimeType: "application/pdf",
+    appProperties: { [DRIVE_SHA256_PROPERTY]: sha256 },
   };
 
   const body = Buffer.concat([
@@ -277,11 +320,12 @@ async function simpleUploadDrivePdf(folderId: string, fileName: string, pdfBuffe
   return response.json() as Promise<{ id: string; name: string }>;
 }
 
-async function resumableUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, accessToken: string) {
+async function resumableUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, sha256: string, accessToken: string) {
   const metadata = {
     name: fileName,
     parents: [folderId],
     mimeType: "application/pdf",
+    appProperties: { [DRIVE_SHA256_PROPERTY]: sha256 },
   };
 
   const initResponse = await fetch(`${GOOGLE_UPLOAD_URL}?uploadType=resumable&supportsAllDrives=true`, {

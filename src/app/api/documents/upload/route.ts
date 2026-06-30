@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const encryptedPdf = await encryptPdfForStorage(originalBuffer, credential.password);
     const provider = getWorkspaceProvider(workspace);
-    let storedFile: { id: string; name: string };
+    let storedFile: { id: string; name: string; sha256?: string };
 
     if (provider === "GOOGLE_DRIVE") {
       const accessToken = await getDriveAccessToken(workspace.cloudRefreshToken || "");
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
           sourceType: credential.sourceType,
           policyId: credential.policyId,
           fileSizeMb: Number((encryptedPdf.byteLength / (1024 * 1024)).toFixed(2)),
+          sha256: storedFile.sha256,
         }),
         status: "SUCCESS",
         workspaceId: workspace.id,

@@ -177,6 +177,7 @@ export default function DocumentsPage() {
 
     setIsViewing(true);
     setMessage("");
+    setActivePdf(null);
 
     try {
       const res = await fetch(

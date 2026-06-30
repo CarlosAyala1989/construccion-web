@@ -9,7 +9,7 @@ import {
   getCandidatePasswordsForUser,
 } from "@/lib/document-access";
 import { getWorkspaceProvider, readLocalPdf } from "@/lib/document-storage";
-import { downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus, isDriveItemWithinFolder } from "@/lib/google-drive";
+import { DRIVE_SHA256_PROPERTY, downloadDriveFile, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus, isDriveItemWithinFolder, verifyDriveFileSha256 } from "@/lib/google-drive";
 import { getPdfProcessingErrorStatus, renderPdfImagesForViewing } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
 
       fileName = metadata.name;
       encryptedPdf = await downloadDriveFile(fileId, accessToken);
+      verifyDriveFileSha256(encryptedPdf, metadata.appProperties?.[DRIVE_SHA256_PROPERTY]);
     } else if (provider === "LOCAL") {
       const localFile = await readLocalPdf(workspace, fileId);
       fileName = localFile.name;
