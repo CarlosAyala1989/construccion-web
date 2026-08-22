@@ -5,33 +5,17 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import {
-  ACCESS_ROLE_DESKTOP_SCANNER,
   ACCESS_ROLE_WEB_VIEWER,
-  DOCUMENT_ACCESS_GLOBAL,
   DOCUMENT_ACCESS_PASSWORD_SCOPED,
   replaceUserPasswordGrants,
 } from "@/lib/document-access";
-
-const BCRYPT_SALT_ROUNDS = 10;
-const MIN_PASSWORD_LENGTH = 6;
-const DEFAULT_USER_ROLE = "EMPLOYEE";
-const AUDIT_ACTION_USER_CREATED = "USER_CREATED";
-const AUDIT_STATUS_SUCCESS = "SUCCESS";
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type CreateUserPayload = {
-  name: string;
-  email: string;
-  password: string;
-  accessRole: typeof ACCESS_ROLE_WEB_VIEWER | typeof ACCESS_ROLE_DESKTOP_SCANNER;
-  workspaceIds: string[];
-  documentAccessMode: typeof DOCUMENT_ACCESS_GLOBAL | typeof DOCUMENT_ACCESS_PASSWORD_SCOPED;
-  passwordGrantKeys: string[];
-};
-
-type ParseResult =
-  | { ok: true; value: CreateUserPayload }
-  | { ok: false; error: string };
+import {
+  AUDIT_ACTION_USER_CREATED,
+  AUDIT_STATUS_SUCCESS,
+  BCRYPT_SALT_ROUNDS,
+  DEFAULT_USER_ROLE,
+  parseCreateUserPayload,
+} from "@/lib/user-creation";
 
 function unauthorizedResponse() {
   return NextResponse.json({ error: "No autorizado" }, { status: 403 });
@@ -47,68 +31,6 @@ function sanitizeUser<T extends { password: string; twoFactorSecret: string | nu
   void _password;
   void _twoFactorSecret;
   return safeUser;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseStringArray(
-  value: unknown,
-  fieldName: string
-): { ok: true; value: string[] } | { ok: false; error: string } {
-  if (value === undefined) return { ok: true, value: [] };
-
-  if (!Array.isArray(value) || !value.every(item => typeof item === "string" && item.trim().length > 0)) {
-    return { ok: false, error: `${fieldName} debe ser una lista de identificadores válidos.` };
-  }
-
-  return { ok: true, value: [...new Set(value.map(item => item.trim()))] };
-}
-
-function parseCreateUserPayload(input: unknown): ParseResult {
-  if (!isRecord(input)) {
-    return { ok: false, error: "El cuerpo de la solicitud no es válido." };
-  }
-
-  const name = typeof input.name === "string" ? input.name.trim() : "";
-  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-  const password = typeof input.password === "string" ? input.password : "";
-
-  if (!name) return { ok: false, error: "El nombre es obligatorio." };
-  if (!EMAIL_PATTERN.test(email)) return { ok: false, error: "El correo electrónico no es válido." };
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return { ok: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.` };
-  }
-
-  const accessRole = input.accessRole ?? ACCESS_ROLE_DESKTOP_SCANNER;
-  if (accessRole !== ACCESS_ROLE_WEB_VIEWER && accessRole !== ACCESS_ROLE_DESKTOP_SCANNER) {
-    return { ok: false, error: "El tipo de cuenta no es válido." };
-  }
-
-  const documentAccessMode = input.documentAccessMode ?? DOCUMENT_ACCESS_PASSWORD_SCOPED;
-  if (documentAccessMode !== DOCUMENT_ACCESS_GLOBAL && documentAccessMode !== DOCUMENT_ACCESS_PASSWORD_SCOPED) {
-    return { ok: false, error: "El modo de acceso documental no es válido." };
-  }
-
-  const workspaceIds = parseStringArray(input.workspaceIds, "workspaceIds");
-  if (!workspaceIds.ok) return workspaceIds;
-
-  const passwordGrantKeys = parseStringArray(input.passwordGrantKeys, "passwordGrantKeys");
-  if (!passwordGrantKeys.ok) return passwordGrantKeys;
-
-  return {
-    ok: true,
-    value: {
-      name,
-      email,
-      password,
-      accessRole,
-      workspaceIds: workspaceIds.value,
-      documentAccessMode,
-      passwordGrantKeys: passwordGrantKeys.value,
-    },
-  };
 }
 
 async function validateWorkspaceIds(workspaceIds: string[]) {
@@ -150,7 +72,14 @@ export async function POST(request: Request) {
   if (!session) return unauthorizedResponse();
 
   try {
-    const parsedPayload = parseCreateUserPayload(await request.json());
+    let requestBody: unknown;
+    try {
+      requestBody = await request.json();
+    } catch {
+      return NextResponse.json({ error: "El cuerpo JSON de la solicitud no es válido." }, { status: 400 });
+    }
+
+    const parsedPayload = parseCreateUserPayload(requestBody);
     if (!parsedPayload.ok) {
       return NextResponse.json({ error: parsedPayload.error }, { status: 400 });
     }
@@ -189,7 +118,7 @@ export async function POST(request: Request) {
         accessRole,
         documentAccessMode,
         workspaces: {
-          connect: workspaceIds.map(id => ({ id })),
+          connect: workspaceIds.map((id: string) => ({ id })),
         },
       },
       include: {
