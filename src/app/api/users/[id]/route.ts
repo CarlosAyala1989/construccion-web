@@ -15,6 +15,17 @@ import {
   parseAccountStatusPayload,
 } from "@/lib/user-status";
 
+type UserUpdateRequest = {
+  isActive?: boolean;
+  name?: string;
+  email?: string;
+  role?: string;
+  accessRole?: string;
+  workspaceIds?: string[];
+  documentAccessMode?: string;
+  passwordGrantKeys?: string[];
+};
+
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getAdminSession();
   if (!session) return unauthorizedAdminResponse();
@@ -32,7 +43,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     return NextResponse.json({ error: "El cuerpo de la solicitud no es válido." }, { status: 400 });
   }
 
-  const data = requestBody as Record<string, any>;
+  const data = requestBody as UserUpdateRequest;
 
   try {
     if (Object.prototype.hasOwnProperty.call(data, "isActive")) {
@@ -75,7 +86,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     }
     if (workspaceIds !== undefined) {
       userUpdateData.workspaces = {
-        set: workspaceIds.map((workspaceId: string) => ({ id: workspaceId })),
+        set: workspaceIds.map(workspaceId => ({ id: workspaceId })),
       };
     }
 
