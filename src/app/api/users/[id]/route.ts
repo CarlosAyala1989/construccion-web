@@ -9,20 +9,46 @@ import {
   DOCUMENT_ACCESS_PASSWORD_SCOPED,
   replaceUserPasswordGrants,
 } from "@/lib/document-access";
+import {
+  AccountStatusError,
+  changeUserAccountStatus,
+  parseAccountStatusPayload,
+} from "@/lib/user-status";
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getAdminSession();
   if (!session) return unauthorizedAdminResponse();
 
-  try {
-    const { id: userId } = await props.params;
-    const requestBody = await request.json();
+  const { id: userId } = await props.params;
 
-    if (requestBody?.isActive !== undefined) {
-      return NextResponse.json(
-        { error: "El estado de la cuenta debe modificarse mediante el endpoint de estado." },
-        { status: 400 }
-      );
+  let requestBody: unknown;
+  try {
+    requestBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "El cuerpo JSON de la solicitud no es válido." }, { status: 400 });
+  }
+
+  if (typeof requestBody !== "object" || requestBody === null || Array.isArray(requestBody)) {
+    return NextResponse.json({ error: "El cuerpo de la solicitud no es válido." }, { status: 400 });
+  }
+
+  const data = requestBody as Record<string, any>;
+
+  try {
+    if (Object.prototype.hasOwnProperty.call(data, "isActive")) {
+      const parsedStatus = parseAccountStatusPayload(data);
+      if (!parsedStatus.ok) {
+        return NextResponse.json({ error: parsedStatus.error }, { status: 400 });
+      }
+
+      const statusResult = await changeUserAccountStatus({
+        actorUserId: session.user.id,
+        actorUserName: session.user.name,
+        targetUserId: userId,
+        requestedIsActive: parsedStatus.value.isActive,
+      });
+
+      return NextResponse.json(statusResult);
     }
 
     const {
@@ -33,7 +59,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       workspaceIds,
       documentAccessMode,
       passwordGrantKeys,
-    } = requestBody;
+    } = data;
 
     const userUpdateData: Prisma.UserUpdateInput = {};
     if (name !== undefined) userUpdateData.name = name;
@@ -113,10 +139,16 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
 
     return NextResponse.json(userWithGrants || updatedUser);
   } catch (error) {
+    if (error instanceof AccountStatusError) {
+      return NextResponse.json({ error: error.message }, { status: error.httpStatus });
+    }
+
     console.error("Error al actualizar el usuario", {
       actorUserId: session.user.id,
+      targetUserId: userId,
       error,
     });
+
     return NextResponse.json({ error: "Error al actualizar el usuario" }, { status: 500 });
   }
 }
