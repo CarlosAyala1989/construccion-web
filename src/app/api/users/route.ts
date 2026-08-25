@@ -1,91 +1,133 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth/next";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import {
-  ACCESS_ROLE_DESKTOP_SCANNER,
   ACCESS_ROLE_WEB_VIEWER,
-  DOCUMENT_ACCESS_GLOBAL,
   DOCUMENT_ACCESS_PASSWORD_SCOPED,
   replaceUserPasswordGrants,
 } from "@/lib/document-access";
+import {
+  AUDIT_ACTION_USER_CREATED,
+  AUDIT_STATUS_SUCCESS,
+  BCRYPT_SALT_ROUNDS,
+  DEFAULT_USER_ROLE,
+  parseCreateUserPayload,
+} from "@/lib/user-creation";
 
-export async function GET() {
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+}
+
+async function getAdminSession() {
   const session = await getServerSession(authOptions);
-  
-  if (!session || session.user?.role !== "ADMIN") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-  }
+  return session?.user?.role === "ADMIN" ? session : null;
+}
+
+function sanitizeUser<T extends { password: string; twoFactorSecret: string | null }>(user: T) {
+  const { password: _password, twoFactorSecret: _twoFactorSecret, ...safeUser } = user;
+  void _password;
+  void _twoFactorSecret;
+  return safeUser;
+}
+
+async function validateWorkspaceIds(workspaceIds: string[]) {
+  if (workspaceIds.length === 0) return true;
+
+  const existingWorkspaces = await prisma.workspace.count({
+    where: { id: { in: workspaceIds } },
+  });
+
+  return existingWorkspaces === workspaceIds.length;
+}
+
+/**
+ * Lista usuarios para el módulo administrativo sin exponer credenciales sensibles.
+ */
+export async function GET() {
+  const session = await getAdminSession();
+  if (!session) return unauthorizedResponse();
 
   const users = await prisma.user.findMany({
     include: {
       workspaces: true,
       documentPasswordGrants: true,
     },
-    orderBy: { createdAt: "desc" }
-  });
-  
-  // Return users without passwords
-  const safeUsers = users.map(user => {
-    const { password, twoFactorSecret, ...safeUser } = user;
-    void password;
-    void twoFactorSecret;
-    return safeUser;
+    orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(safeUsers);
+  return NextResponse.json(users.map(sanitizeUser));
 }
 
+/**
+ * Crea un perfil operativo administrado.
+ * Requiere una sesión ADMIN, valida el payload antes de persistir, aplica hash bcrypt,
+ * asocia workspaces/grants y registra el evento USER_CREATED.
+ * Nunca devuelve password ni twoFactorSecret.
+ */
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user?.role !== "ADMIN") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-  }
+  const session = await getAdminSession();
+  if (!session) return unauthorizedResponse();
 
   try {
-    const data = await request.json();
+    let requestBody: unknown;
+    try {
+      requestBody = await request.json();
+    } catch {
+      return NextResponse.json({ error: "El cuerpo JSON de la solicitud no es válido." }, { status: 400 });
+    }
+
+    const parsedPayload = parseCreateUserPayload(requestBody);
+    if (!parsedPayload.ok) {
+      return NextResponse.json({ error: parsedPayload.error }, { status: 400 });
+    }
+
     const {
       name,
       email,
       password,
-      role,
       accessRole,
-      workspaceIds = [],
+      workspaceIds,
       documentAccessMode,
-      passwordGrantKeys = [],
-    } = data;
-    const nextAccessRole = accessRole === ACCESS_ROLE_WEB_VIEWER ? ACCESS_ROLE_WEB_VIEWER : ACCESS_ROLE_DESKTOP_SCANNER;
-    const accessMode =
-      documentAccessMode === DOCUMENT_ACCESS_GLOBAL ? DOCUMENT_ACCESS_GLOBAL : DOCUMENT_ACCESS_PASSWORD_SCOPED;
+      passwordGrantKeys,
+    } = parsedPayload.value;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const [existingUser, validWorkspaces] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      validateWorkspaceIds(workspaceIds),
+    ]);
+
     if (existingUser) {
-      return NextResponse.json({ error: "El email ya está registrado." }, { status: 400 });
+      return NextResponse.json({ error: "El email ya está registrado." }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!validWorkspaces) {
+      return NextResponse.json({ error: "Uno o más espacios de trabajo no existen." }, { status: 400 });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role || "EMPLOYEE",
-        accessRole: nextAccessRole,
-        documentAccessMode: accessMode,
+        role: DEFAULT_USER_ROLE,
+        accessRole,
+        documentAccessMode,
         workspaces: {
-          connect: workspaceIds?.map((id: string) => ({ id })) || []
-        }
+          connect: workspaceIds.map((id: string) => ({ id })),
+        },
       },
       include: {
         workspaces: true,
         documentPasswordGrants: true,
-      }
+      },
     });
 
-    if (nextAccessRole === ACCESS_ROLE_WEB_VIEWER && accessMode === DOCUMENT_ACCESS_PASSWORD_SCOPED) {
+    if (accessRole === ACCESS_ROLE_WEB_VIEWER && documentAccessMode === DOCUMENT_ACCESS_PASSWORD_SCOPED) {
       await replaceUserPasswordGrants(newUser.id, workspaceIds, passwordGrantKeys);
     }
 
@@ -97,22 +139,27 @@ export async function POST(request: Request) {
       },
     });
 
-    // Audit log for user creation (Zero Trust onboarding)
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
         userName: session.user.name || "Admin",
-        action: "USER_CREATED",
-        details: `Empleado creado: ${name} (${email}), Rol: ${role || "EMPLOYEE"}, Tipo: ${nextAccessRole}, Espacios: ${workspaceIds?.length || 0}, Visor: ${accessMode}`,
-        status: "SUCCESS",
-      }
+        action: AUDIT_ACTION_USER_CREATED,
+        details: `Empleado creado: ${name} (${email}), Rol: ${DEFAULT_USER_ROLE}, Tipo: ${accessRole}, Espacios: ${workspaceIds.length}, Visor: ${documentAccessMode}`,
+        status: AUDIT_STATUS_SUCCESS,
+      },
     });
 
-    const { password: createdPassword, twoFactorSecret: createdTwoFactorSecret, ...safeUser } = userWithGrants || newUser;
-    void createdPassword;
-    void createdTwoFactorSecret;
-    return NextResponse.json(safeUser, { status: 201 });
-  } catch {
+    return NextResponse.json(sanitizeUser(userWithGrants || newUser), { status: 201 });
+  } catch (error) {
+    console.error("[RF-01] Error al crear usuario", {
+      actorUserId: session.user.id,
+      error,
+    });
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "El email ya está registrado." }, { status: 409 });
+    }
+
     return NextResponse.json({ error: "Error al crear usuario" }, { status: 500 });
   }
 }
