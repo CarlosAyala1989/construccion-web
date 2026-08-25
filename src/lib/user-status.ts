@@ -67,6 +67,10 @@ export function parseAccountStatusPayload(input: unknown): ParseAccountStatusRes
   return { ok: true, value: { isActive: input.isActive } };
 }
 
+/**
+ * Aplica una transición lógica de estado y registra su auditoría en la misma transacción.
+ * El registro User nunca se elimina, preservando su identidad para trazabilidad histórica.
+ */
 export async function changeUserAccountStatus({
   actorUserId,
   actorUserName,
