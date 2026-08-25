@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getAdminSession, unauthorizedAdminResponse } from "@/lib/admin-session";
 import {
   ACCESS_ROLE_WEB_VIEWER,
   DOCUMENT_ACCESS_PASSWORD_SCOPED,
@@ -16,15 +15,6 @@ import {
   DEFAULT_USER_ROLE,
   parseCreateUserPayload,
 } from "@/lib/user-creation";
-
-function unauthorizedResponse() {
-  return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-}
-
-async function getAdminSession() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.role === "ADMIN" ? session : null;
-}
 
 function sanitizeUser<T extends { password: string; twoFactorSecret: string | null }>(user: T) {
   const { password: _password, twoFactorSecret: _twoFactorSecret, ...safeUser } = user;
@@ -48,7 +38,7 @@ async function validateWorkspaceIds(workspaceIds: string[]) {
  */
 export async function GET() {
   const session = await getAdminSession();
-  if (!session) return unauthorizedResponse();
+  if (!session) return unauthorizedAdminResponse();
 
   const users = await prisma.user.findMany({
     include: {
@@ -69,7 +59,7 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   const session = await getAdminSession();
-  if (!session) return unauthorizedResponse();
+  if (!session) return unauthorizedAdminResponse();
 
   try {
     let requestBody: unknown;
