@@ -235,11 +235,32 @@ export async function downloadDriveFile(fileId: string, accessToken: string) {
 
 export async function uploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, accessToken: string) {
   const sha256 = calculateSha256(pdfBuffer);
+  const availableFileName = await preventDriveNameCollision(folderId, fileName, accessToken);
   const storedFile = pdfBuffer.byteLength < 5 * 1024 * 1024
-    ? await simpleUploadDrivePdf(folderId, fileName, pdfBuffer, sha256, accessToken)
-    : await resumableUploadDrivePdf(folderId, fileName, pdfBuffer, sha256, accessToken);
+    ? await simpleUploadDrivePdf(folderId, availableFileName, pdfBuffer, sha256, accessToken)
+    : await resumableUploadDrivePdf(folderId, availableFileName, pdfBuffer, sha256, accessToken);
 
   return { ...storedFile, sha256 };
+}
+
+async function preventDriveNameCollision(folderId: string, fileName: string, accessToken: string) {
+  const files = await listDrivePdfs(folderId, accessToken);
+  const existingNames = new Set(files.map(file => file.name));
+  if (!existingNames.has(fileName)) return fileName;
+
+  const extensionIndex = fileName.lastIndexOf(".");
+  const hasExtension = extensionIndex > 0;
+  const baseName = hasExtension ? fileName.slice(0, extensionIndex) : fileName;
+  const extension = hasExtension ? fileName.slice(extensionIndex) : "";
+  let version = 2;
+  let candidate = `${baseName}_v${version}${extension}`;
+
+  while (existingNames.has(candidate)) {
+    version += 1;
+    candidate = `${baseName}_v${version}${extension}`;
+  }
+
+  return candidate;
 }
 
 export function calculateSha256(fileBuffer: Buffer) {

@@ -125,6 +125,43 @@ export async function encryptPdfForStorage(pdfBuffer: Buffer, password: string) 
   }
 }
 
+export async function compressPdfForStorage(pdfBuffer: Buffer) {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "gobernanza-pdf-compress-"));
+
+  try {
+    const inputPath = path.join(tempDir, `${randomUUID()}.pdf`);
+    const outputPath = path.join(tempDir, `${randomUUID()}.pdf`);
+    await writeFile(inputPath, pdfBuffer);
+
+    await execFileAsync(
+      GHOSTSCRIPT_BIN,
+      [
+        "-q",
+        "-dNOPAUSE",
+        "-dBATCH",
+        "-dSAFER",
+        "-sDEVICE=pdfwrite",
+        "-dCompatibilityLevel=1.4",
+        "-dPDFSETTINGS=/ebook",
+        `-sOutputFile=${outputPath}`,
+        inputPath,
+      ],
+      { timeout: 120000, maxBuffer: 1024 * 1024 }
+    );
+
+    const compressed = await readFile(outputPath);
+    return compressed.byteLength < pdfBuffer.byteLength
+      ? { buffer: compressed, compressed: true }
+      : { buffer: pdfBuffer, compressed: false };
+  } catch {
+    // Compression is optional; encryption and upload can continue with the
+    // original PDF when Ghostscript cannot reduce this particular file.
+    return { buffer: pdfBuffer, compressed: false };
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
 async function tryRewritePdf(inputPath: string, tempDir: string, password: string | null) {
   const outputPath = path.join(tempDir, `${randomUUID()}.pdf`);
   const args = [

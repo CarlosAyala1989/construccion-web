@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getActiveRequestUser, getAuthorizedWorkspace, getUploadCredentialForUser } from "@/lib/document-access";
 import { getWorkspaceProvider, sanitizePdfFileName, writeLocalPdf } from "@/lib/document-storage";
 import { DRIVE_FOLDER_MIME_TYPE, getDriveAccessToken, getDriveFileMetadata, getGoogleDriveErrorStatus, isDriveItemWithinFolder, uploadDrivePdf } from "@/lib/google-drive";
-import { encryptPdfForStorage } from "@/lib/pdf-server";
+import { compressPdfForStorage, encryptPdfForStorage } from "@/lib/pdf-server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -49,7 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No tienes permiso para usar esa contraseña de documento." }, { status: 403 });
     }
 
-    const encryptedPdf = await encryptPdfForStorage(originalBuffer, credential.password);
+    const config = await prisma.config.findFirst({
+      select: {
+        compressionEnabled: true,
+        compressionThresholdMb: true,
+      },
+    });
+    const compressionThresholdBytes = (config?.compressionThresholdMb || 10) * 1024 * 1024;
+    const preparedPdf = config?.compressionEnabled && originalBuffer.byteLength > compressionThresholdBytes
+      ? await compressPdfForStorage(originalBuffer)
+      : { buffer: originalBuffer, compressed: false };
+    const encryptedPdf = await encryptPdfForStorage(preparedPdf.buffer, credential.password);
     const provider = getWorkspaceProvider(workspace);
     let storedFile: { id: string; name: string; sha256?: string };
 
@@ -87,6 +97,7 @@ export async function POST(request: NextRequest) {
           sourceType: credential.sourceType,
           policyId: credential.policyId,
           fileSizeMb: Number((encryptedPdf.byteLength / (1024 * 1024)).toFixed(2)),
+          compressed: preparedPdf.compressed,
           sha256: storedFile.sha256,
         }),
         status: "SUCCESS",
