@@ -39,25 +39,25 @@ export default function WorkspacesPage() {
   const [googleClientId, setGoogleClientId] = useState("");
   const [isGoogleOauthConfigured, setIsGoogleOauthConfigured] = useState(false);
 
-  // Form State
+  // Estado del formulario.
   const [name, setName] = useState("");
   const [cloudPath, setCloudPath] = useState("");
   const [cloudFolderId, setCloudFolderId] = useState("");
   const [cloudRefreshToken, setCloudRefreshToken] = useState("");
   const [defaultPassword, setDefaultPassword] = useState("");
 
-  // Folder Picker Modal State
+  // Estado del modal selector de carpetas.
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<"local" | "gdrive" | "dropbox">("local");
   const [localPath, setLocalPath] = useState("");
   const [dropboxPath, setDropboxPath] = useState("");
 
-  // Google Drive Browser Modal
+  // Modal del explorador de Google Drive.
   const [showDriveBrowser, setShowDriveBrowser] = useState(false);
   const [reconnectingWorkspace, setReconnectingWorkspace] = useState<Workspace | null>(null);
   const [isReconnectingDrive, setIsReconnectingDrive] = useState(false);
 
-  // Assignment Modal State
+  // Estado del modal de asignación.
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
@@ -154,7 +154,7 @@ export default function WorkspacesPage() {
     }
   };
 
-  // ─── Folder Picker Logic ─────────────────────
+  // ─── Lógica del selector de carpetas ─────────
   const openFolderPicker = () => {
     setLocalPath("");
     setDropboxPath("");
@@ -240,7 +240,7 @@ export default function WorkspacesPage() {
     }
   };
 
-  // Common local folder suggestions
+  // Sugerencias habituales de carpetas locales.
   const localSuggestions = [
     { label: "Escritorio", path: "~/Escritorio/Documentos_Gobernanza" },
     { label: "Documentos", path: "~/Documentos/Gobernanza" },
@@ -254,7 +254,7 @@ export default function WorkspacesPage() {
     { label: "Documentos", path: "/Documentos/Escaneados" },
   ];
 
-  // Detect type from existing cloudPath for display
+  // Detecta el tipo que se mostrará a partir de cloudPath.
   const getPathBadge = (path: string) => {
     if (path.startsWith("LOCAL:")) return { label: "Local", color: "bg-emerald-100 text-emerald-800", icon: "workspaces" as const };
     if (path.startsWith("Google Drive:")) return { label: "Google Drive", color: "bg-blue-100 text-blue-800", icon: "upload" as const };
@@ -265,10 +265,10 @@ export default function WorkspacesPage() {
 
   return (
     <div className="admin-page space-y-6">
-      {/* Google Identity Services Script */}
+      {/* Script de servicios de identidad de Google */}
       <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
 
-      {/* ── Google Drive Browser Modal ────────────── */}
+      {/* ── Modal del explorador de Google Drive ────── */}
       <DriveFolderBrowser
         isOpen={showDriveBrowser}
         onClose={() => {
@@ -279,11 +279,11 @@ export default function WorkspacesPage() {
         clientId={googleClientId}
       />
 
-      {/* ── Folder Picker Modal ──────────────────── */}
+      {/* ── Modal del selector de carpetas ─────────── */}
       {showFolderPicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowFolderPicker(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-            {/* Header */}
+            {/* Encabezado */}
             <div className="bg-indigo-600 px-6 py-4 text-white">
               <h3 className="text-lg font-semibold">Seleccionar carpeta de destino</h3>
               <p className="text-sm text-indigo-200 mt-1">
@@ -291,7 +291,7 @@ export default function WorkspacesPage() {
               </p>
             </div>
 
-            {/* Tabs */}
+            {/* Pestañas */}
             <div className="flex border-b border-gray-200">
               <button
                 onClick={() => setPickerTab("local")}
@@ -325,10 +325,10 @@ export default function WorkspacesPage() {
               </button>
             </div>
 
-            {/* Tab Content */}
+            {/* Contenido de las pestañas */}
             <div className="p-6">
 
-              {/* LOCAL TAB */}
+              {/* Pestaña local */}
               {pickerTab === "local" && (
                 <div className="space-y-4">
                   <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -368,7 +368,7 @@ export default function WorkspacesPage() {
                 </div>
               )}
 
-              {/* GOOGLE DRIVE TAB */}
+              {/* Pestaña de Google Drive */}
               {pickerTab === "gdrive" && (
                 <div className="space-y-4">
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -409,7 +409,7 @@ export default function WorkspacesPage() {
                 </div>
               )}
 
-              {/* DROPBOX TAB */}
+              {/* Pestaña de Dropbox */}
               {pickerTab === "dropbox" && (
                 <div className="space-y-4">
                   <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
@@ -450,7 +450,7 @@ export default function WorkspacesPage() {
               )}
             </div>
 
-            {/* Security info banner */}
+            {/* Aviso de información de seguridad */}
             <div className="px-6 pb-3">
               <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                 <p className="text-xs text-amber-800">
@@ -461,7 +461,7 @@ export default function WorkspacesPage() {
               </div>
             </div>
 
-            {/* Footer */}
+            {/* Pie de página */}
             <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200">
               <button
                 type="button"
@@ -493,7 +493,7 @@ export default function WorkspacesPage() {
         </div>
       )}
 
-      {/* ── Assignment Modal ──────────────────────── */}
+      {/* ── Modal de asignación ────────────────────── */}
       {editingWorkspace && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
@@ -543,7 +543,7 @@ export default function WorkspacesPage() {
         </div>
       )}
 
-      {/* ── Page Header ──────────────────────────── */}
+      {/* ── Encabezado de página ───────────────────── */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <h3 className="text-lg font-medium text-gray-900">Espacios de trabajo</h3>
         <p className="mt-2 text-sm text-gray-500">
@@ -552,7 +552,7 @@ export default function WorkspacesPage() {
         </p>
       </div>
 
-      {/* ── Create + Table ───────────────────────── */}
+      {/* ── Creación y tabla ───────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h4 className="text-md font-medium text-gray-900 mb-4">Crear espacio</h4>

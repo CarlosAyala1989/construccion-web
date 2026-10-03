@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // GET /api/drive/folders?parentId=xxx&token=xxx
-// Lists folders inside a given parent folder in Google Drive
+// Enumera las carpetas que contiene una carpeta superior de Google Drive.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Query Google Drive API v3 for folders only
+    // Consulta solo las carpetas en la API v3 de Google Drive.
     const query = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const fields = "files(id,name,mimeType,parents,createdTime)";
     const orderBy = "name";
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/drive/folders — Create a new folder
+// POST /api/drive/folders — Crea una carpeta nueva.
 export async function POST(request: Request) {
   try {
     const body = await request.json();

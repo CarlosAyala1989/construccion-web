@@ -1,3 +1,5 @@
+// RF-02
+
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -69,7 +71,7 @@ export function parseAccountStatusPayload(input: unknown): ParseAccountStatusRes
 
 /**
  * Aplica una transición lógica de estado y registra su auditoría en la misma transacción.
- * El registro User nunca se elimina, preservando su identidad para trazabilidad histórica.
+ * El registro del modelo User nunca se elimina, para conservar su identidad en la trazabilidad histórica.
  */
 export async function changeUserAccountStatus({
   actorUserId,

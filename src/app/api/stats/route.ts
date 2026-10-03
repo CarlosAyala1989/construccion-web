@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// GET /api/stats — Dashboard summary statistics
+// GET /api/stats — Estadísticas resumidas del panel principal.
 export async function GET() {
   const session = await getServerSession(authOptions);
 

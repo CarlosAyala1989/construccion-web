@@ -3,7 +3,7 @@
 import { AppIcon } from "@/components/AppIcon";
 import { useState, useEffect, useCallback } from "react";
 
-// ─── Types ────────────────────────────────────────────
+// ─── Tipos ────────────────────────────────────────────
 type DriveFolder = {
   id: string;
   name: string;
@@ -62,7 +62,7 @@ type DriveFoldersResponse = ApiErrorResponse & {
   folders?: DriveFolder[];
 };
 
-// ─── Component ────────────────────────────────────────
+// ─── Componente ───────────────────────────────────────
 export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId }: Props) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
   const [error, setError] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<DriveFolder | null>(null);
 
-  // New folder creation
+  // Creación de una carpeta nueva.
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -107,7 +107,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     }
   }, [accessToken]);
 
-  // ─── Google Auth (Authorization Code Flow for refresh token) ──
+  // ─── Autenticación de Google (flujo de código de autorización para renovar el token) ──
   const handleGoogleAuth = useCallback(() => {
     if (!clientId) {
       setError("Falta configurar el Client ID OAuth de Google Drive.");
@@ -120,7 +120,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
       return;
     }
 
-    // Use code client (authorization code flow) to get a refresh_token
+    // Usa el cliente de código (flujo de autorización) para obtener un token de renovación.
     const codeClient = gis.initCodeClient({
       client_id: clientId,
       scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
@@ -138,7 +138,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
           return;
         }
 
-        // Exchange the authorization code for tokens on our server
+        // Intercambia el código de autorización por tokens en nuestro servidor.
         try {
           const tokenRes = await fetch("/api/drive/token", {
             method: "POST",
@@ -181,14 +181,14 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     codeClient.requestCode();
   }, [clientId]);
 
-  // ─── Load folders when token or parent changes ────
+  // ─── Carga carpetas cuando cambia el token o la carpeta superior ────
   useEffect(() => {
     if (accessToken && isOpen) {
       void Promise.resolve().then(() => loadFolders(currentParentId));
     }
   }, [accessToken, currentParentId, isOpen, loadFolders]);
 
-  // ─── Navigation ───────────────────────────────────
+  // ─── Navegación ────────────────────────────────────
   const navigateToFolder = (folder: DriveFolder) => {
     setBreadcrumb(prev => [...prev, { id: folder.id, name: folder.name }]);
     setSelectedFolder(null);
@@ -199,7 +199,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     setSelectedFolder(null);
   };
 
-  // ─── Create Folder ────────────────────────────────
+  // ─── Creación de carpetas ──────────────────────────
   const handleCreateFolder = async () => {
     if (!newFolderName.trim() || !accessToken) return;
     setIsCreating(true);
@@ -230,7 +230,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     }
   };
 
-  // ─── Confirm Selection ────────────────────────────
+  // ─── Confirmación de selección ─────────────────────
   const handleConfirm = () => {
     if (!refreshToken) {
       setError("Google no devolvió credenciales persistentes. Revoca el acceso de esta app en tu cuenta Google y vuelve a conectar Drive.");
@@ -248,7 +248,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     onClose();
   };
 
-  // ─── Render ───────────────────────────────────────
+  // ─── Renderizado ───────────────────────────────────
   if (!isOpen) return null;
 
   return (
@@ -258,7 +258,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
         style={{ maxHeight: "80vh" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Encabezado */}
         <div className="bg-blue-600 px-6 py-4 text-white flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
@@ -276,10 +276,10 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
           </div>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div className="flex-1 overflow-hidden flex flex-col">
 
-          {/* Not authenticated */}
+          {/* Sin autenticar */}
           {!accessToken ? (
             <div className="p-8 text-center flex-1 flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -310,7 +310,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
             </div>
           ) : (
             <>
-              {/* Breadcrumb */}
+              {/* Ruta de navegación */}
               <div className="px-4 py-3 bg-gray-50 border-b flex items-center gap-1 overflow-x-auto flex-shrink-0">
                 {breadcrumb.map((item, idx) => (
                   <span key={item.id} className="flex items-center flex-shrink-0">
@@ -329,7 +329,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 ))}
               </div>
 
-              {/* Toolbar */}
+              {/* Barra de herramientas */}
               <div className="px-4 py-2 border-b flex items-center justify-between flex-shrink-0">
                 <span className="text-xs text-gray-500">
                   {isLoading ? "Cargando..." : `${folders.length} carpeta${folders.length !== 1 ? "s" : ""}`}
@@ -351,7 +351,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 </div>
               </div>
 
-              {/* New folder input */}
+              {/* Campo para crear una carpeta */}
               {showNewFolder && (
                 <div className="px-4 py-3 bg-blue-50 border-b flex items-center gap-2 flex-shrink-0">
                   <AppIcon name="folder" />
@@ -385,7 +385,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 <div className="mx-4 mt-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex-shrink-0">{error}</div>
               )}
 
-              {/* Folder list */}
+              {/* Lista de carpetas */}
               <div className="flex-1 overflow-y-auto p-2">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
@@ -432,7 +432,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
                 )}
               </div>
 
-              {/* Selection info */}
+              {/* Información de la selección */}
               <div className="px-4 py-3 bg-gray-50 border-t flex-shrink-0">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>Destino:</span>
@@ -461,7 +461,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
           )}
         </div>
 
-        {/* Footer */}
+        {/* Pie de página */}
         <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t flex-shrink-0">
           <button
             onClick={onClose}

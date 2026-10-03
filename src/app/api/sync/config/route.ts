@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/sync/config — Desktop client fetches all configuration
-// This endpoint is authenticated via JWT token from desktop login
+// GET /api/sync/config — El cliente de escritorio obtiene toda la configuración.
+// Este endpoint se autentica con el token JWT del inicio de sesión de escritorio.
 export async function GET(request: Request) {
-  // Desktop client sends JWT in Authorization header
+  // El cliente de escritorio envía el JWT en el encabezado Authorization.
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Fetch all data the desktop needs
+    // Obtiene todos los datos que necesita el cliente de escritorio.
     const [workspaces, policies, config, nomenclatures] = await Promise.all([
       prisma.workspace.findMany({
         include: {

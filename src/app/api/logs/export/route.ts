@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// GET /api/logs/export — Export audit logs to CSV
+// GET /api/logs/export — Exporta las bitácoras de auditoría a CSV.
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  // Build CSV
+  // Construye el CSV.
   const headers = ["ID", "Fecha", "Usuario", "Acción", "Detalles", "Estado", "Espacio de Trabajo"];
   const rows = logs.map(log => [
     log.id,

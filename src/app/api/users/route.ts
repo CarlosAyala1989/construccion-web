@@ -53,10 +53,11 @@ export async function GET() {
 
 /**
  * Crea un perfil operativo administrado.
- * Requiere una sesión ADMIN, valida el payload antes de persistir, aplica hash bcrypt,
- * asocia workspaces/grants y registra el evento USER_CREATED.
- * Nunca devuelve password ni twoFactorSecret.
+ * Requiere una sesión ADMIN, valida los datos antes de persistirlos y aplica el hash de bcrypt.
+ * Asocia espacios de trabajo y permisos, y registra el evento USER_CREATED.
+ * Nunca devuelve los campos password ni twoFactorSecret.
  */
+// RF-01
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session) return unauthorizedAdminResponse();

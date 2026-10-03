@@ -1,3 +1,5 @@
+// RF-19
+
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
@@ -71,7 +73,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 Days
+    maxAge: 30 * 24 * 60 * 60, // 30 días.
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -92,7 +94,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: "/", // The root page will act as the login page for the administrator
+    signIn: "/", // La página principal funcionará como inicio de sesión del administrador.
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

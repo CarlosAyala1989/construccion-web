@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// GET /api/config — Retrieve current system configuration
+// GET /api/config — Obtiene la configuración actual del sistema.
 export async function GET() {
   const session = await getServerSession(authOptions);
 
@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  // Get existing config or create default
+  // Obtiene la configuración existente o crea una predeterminada.
   let config = await prisma.config.findFirst();
 
   if (!config) {
@@ -28,7 +28,7 @@ export async function GET() {
   return NextResponse.json(config);
 }
 
-// PATCH /api/config — Update system configuration
+// PATCH /api/config — Actualiza la configuración del sistema.
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
       });
     }
 
-    // Audit log for config change
+    // Registra el cambio de configuración en la bitácora.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,

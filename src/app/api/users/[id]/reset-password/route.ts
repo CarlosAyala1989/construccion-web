@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// PATCH /api/users/[id]/reset-password — Force password rotation
+// PATCH /api/users/[id]/reset-password — Fuerza el cambio de contraseña.
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
 
@@ -32,7 +32,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       data: { password: hashedPassword },
     });
 
-    // Log password reset in audit
+    // Registra el restablecimiento de contraseña en la bitácora.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,

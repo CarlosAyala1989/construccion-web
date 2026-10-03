@@ -1,10 +1,10 @@
 /**
- * Utility functions for the Gobernanza Documental platform.
- * Used across the application for date formatting, string manipulation, and data helpers.
+ * Funciones auxiliares de la plataforma Gobernanza Documental.
+ * Se usan para dar formato a fechas, manipular cadenas y preparar datos.
  */
 
 /**
- * Format a date string or Date object to a locale-aware string.
+ * Da formato localizado a una fecha recibida como cadena o como objeto Date.
  */
 export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {
   const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -19,7 +19,7 @@ export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOpt
 }
 
 /**
- * Format a date for display in short form (e.g., "11 may 2026, 14:23").
+ * Da formato abreviado a una fecha para mostrarla (por ejemplo, «11 may 2026, 14:23»).
  */
 export function formatDateShort(date: string | Date): string {
   return new Date(date).toLocaleString("es-MX", {
@@ -31,7 +31,7 @@ export function formatDateShort(date: string | Date): string {
 }
 
 /**
- * Format a date as YYYY-MM-DD for input fields.
+ * Da formato a una fecha como AAAA-MM-DD para campos de entrada.
  */
 export function formatDateInput(date: string | Date): string {
   const d = new Date(date);
@@ -39,7 +39,7 @@ export function formatDateInput(date: string | Date): string {
 }
 
 /**
- * Truncate a string to a given length, appending "..." if truncated.
+ * Recorta una cadena a la longitud indicada y agrega «...» si fue truncada.
  */
 export function truncate(str: string, maxLength: number = 50): string {
   if (str.length <= maxLength) return str;
@@ -47,7 +47,7 @@ export function truncate(str: string, maxLength: number = 50): string {
 }
 
 /**
- * Safely parse JSON without throwing.
+ * Analiza JSON de forma segura sin propagar errores.
  */
 export function safeJsonParse<T = any>(jsonString: string, fallback: T | null = null): T | null {
   try {
@@ -58,7 +58,7 @@ export function safeJsonParse<T = any>(jsonString: string, fallback: T | null = 
 }
 
 /**
- * Generate a display-friendly status label in Spanish.
+ * Genera una etiqueta de estado legible en español.
  */
 export function statusLabel(status: string): string {
   const labels: Record<string, string> = {
@@ -72,7 +72,7 @@ export function statusLabel(status: string): string {
 }
 
 /**
- * Convert bytes to a human-readable file size.
+ * Convierte bytes a un tamaño de archivo legible.
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -82,14 +82,14 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * Capitalize the first letter of a string.
+ * Pone en mayúscula la primera letra de una cadena.
  */
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
 /**
- * Build URL query params from an object, excluding empty values.
+ * Crea parámetros de consulta para una URL a partir de un objeto y excluye valores vacíos.
  */
 export function buildQueryParams(params: Record<string, string | number | undefined>): string {
   const searchParams = new URLSearchParams();

@@ -26,13 +26,13 @@ export default function ConfigPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  // Nomenclature form
+  // Formulario de nomenclatura.
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldOrder, setNewFieldOrder] = useState(0);
   const [newFieldRequired, setNewFieldRequired] = useState(true);
   const [newFieldSeparator, setNewFieldSeparator] = useState("_");
 
-  // Google credentials (parsed from config.cloudCredentials JSON)
+  // Credenciales de Google (analizadas desde el JSON config.cloudCredentials).
   const [googleClientId, setGoogleClientId] = useState("");
   const [googleClientSecret, setGoogleClientSecret] = useState("");
 
@@ -41,13 +41,13 @@ export default function ConfigPage() {
     if (res.ok) {
       const data = await res.json();
       setConfig(data);
-      // Parse cloud credentials
+      // Analiza las credenciales de la nube.
       if (data.cloudCredentials) {
         try {
           const creds = JSON.parse(data.cloudCredentials);
           setGoogleClientId(creds.clientId || "");
           setGoogleClientSecret(creds.clientSecret || "");
-        } catch { /* ignore parse errors */ }
+        } catch { /* Ignora los errores de análisis del JSON de credenciales. */ }
       }
     }
     setIsLoading(false);
@@ -145,13 +145,13 @@ export default function ConfigPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* System Settings */}
+        {/* Configuración del sistema */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h4 className="text-md font-medium text-gray-900 mb-4">Opciones del Sistema</h4>
 
           {config && (
             <div className="space-y-5">
-              {/* Compression */}
+              {/* Compresión */}
               <div>
                 <label className="flex items-center space-x-3">
                   <input
@@ -182,7 +182,7 @@ export default function ConfigPage() {
                 </div>
               )}
 
-              {/* Delete Local */}
+              {/* Eliminación de copias locales */}
               <div>
                 <label className="flex items-center space-x-3">
                   <input
@@ -198,7 +198,7 @@ export default function ConfigPage() {
                 </p>
               </div>
 
-              {/* Cloud Provider */}
+              {/* Proveedor de nube */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Proveedor de Nube</label>
                 <select
@@ -229,7 +229,7 @@ export default function ConfigPage() {
           )}
         </div>
 
-        {/* Google Drive Credentials */}
+        {/* Credenciales de Google Drive */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h4 className="text-md font-medium text-gray-900 mb-2">Credenciales de Google Drive</h4>
           <p className="text-xs text-gray-500 mb-4">
@@ -284,7 +284,7 @@ export default function ConfigPage() {
           </div>
         </div>
 
-        {/* Nomenclatures */}
+        {/* Nomenclaturas */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h4 className="text-md font-medium text-gray-900 mb-2">Nomenclaturas Aceptadas</h4>
           <p className="text-xs text-gray-500 mb-4">
@@ -343,7 +343,7 @@ export default function ConfigPage() {
             </button>
           </form>
 
-          {/* Preview */}
+          {/* Vista previa */}
           {nomenclatures.length > 0 && (
             <div className="mb-4 p-3 bg-gray-50 rounded-md border">
               <p className="text-xs font-medium text-gray-500 mb-1">Vista previa del nombre de archivo:</p>
@@ -354,7 +354,7 @@ export default function ConfigPage() {
             </div>
           )}
 
-          {/* List */}
+          {/* Lista */}
           <div className="space-y-2">
             {nomenclatures.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No hay campos definidos.</p>

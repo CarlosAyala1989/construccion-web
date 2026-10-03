@@ -51,10 +51,12 @@ export async function getActiveRequestUser(userId: string): Promise<RequestUser 
   });
 }
 
+// RF-18
 export function canUseWebDocuments(user: RequestUser) {
   return user.role === "ADMIN" || user.accessRole === ACCESS_ROLE_WEB_VIEWER;
 }
 
+// RF-18
 export async function getAccessibleWorkspaces(user: RequestUser) {
   if (user.role === "ADMIN") {
     return prisma.workspace.findMany({
@@ -197,6 +199,7 @@ export async function replaceUserPasswordGrants(userId: string, workspaceIds: st
   ]);
 }
 
+// RF-18
 export async function getCandidatePasswordsForUser(user: RequestUser, workspace: Workspace) {
   const policies = await prisma.securityPolicy.findMany({
     where: {
@@ -226,6 +229,7 @@ export async function getCandidatePasswordsForUser(user: RequestUser, workspace:
   return dedupeCandidates(grantsToCandidates(grants)).sort(sortCandidates);
 }
 
+// RF-20
 export async function getUploadCredentialForUser(user: RequestUser, workspace: Workspace, credentialKey: string | null) {
   const options = await getPasswordOptionsForWorkspaces([workspace.id]);
   const fallbackKey = defaultCredentialKey(workspace.id);
@@ -273,6 +277,7 @@ export async function getUploadCredentialForUser(user: RequestUser, workspace: W
   };
 }
 
+// RF-18
 function workspaceToCandidate(workspace: Pick<Workspace, "defaultPassword" | "id" | "name">): CandidatePassword {
   return {
     password: workspace.defaultPassword,
@@ -284,6 +289,7 @@ function workspaceToCandidate(workspace: Pick<Workspace, "defaultPassword" | "id
   };
 }
 
+// RF-18
 function policyToCandidate(policy: Pick<SecurityPolicy, "id" | "password" | "type" | "target" | "priority">): CandidatePassword {
   return {
     password: policy.password,
@@ -295,6 +301,7 @@ function policyToCandidate(policy: Pick<SecurityPolicy, "id" | "password" | "typ
   };
 }
 
+// RF-18
 function grantsToCandidates(
   grants: Array<DocumentPasswordGrant & { securityPolicy: SecurityPolicy | null; workspace: Workspace }>
 ) {
@@ -313,6 +320,7 @@ function grantsToCandidates(
     .filter((candidate): candidate is CandidatePassword => Boolean(candidate));
 }
 
+// RF-18
 function dedupeCandidates(candidates: CandidatePassword[]) {
   const byPassword = new Map<string, CandidatePassword>();
 
@@ -332,6 +340,7 @@ function sortCredentialOptions(a: PasswordCredentialOption, b: PasswordCredentia
   return sortByPolicyPriority(a.policyType, a.priority, b.policyType, b.priority);
 }
 
+// RF-18
 function sortCandidates(a: CandidatePassword, b: CandidatePassword) {
   return sortByPolicyPriority(a.policyType, a.priority, b.policyType, b.priority);
 }

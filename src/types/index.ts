@@ -1,6 +1,6 @@
 /**
- * Global TypeScript interfaces for the Gobernanza Documental platform.
- * These types align with the Prisma schema and are used across frontend components and API routes.
+ * Interfaces globales de TypeScript para la plataforma Gobernanza Documental.
+ * Estos tipos corresponden al esquema de Prisma y se usan en componentes y rutas de API.
  */
 
 export interface User {
@@ -88,7 +88,7 @@ export interface NomenclatureField {
   updatedAt: string;
 }
 
-/** Paginated response wrapper */
+/** Contenedor de una respuesta paginada. */
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -99,7 +99,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/** Desktop sync config response */
+/** Respuesta de configuración para la sincronización de escritorio. */
 export interface SyncConfigResponse {
   workspaces: Workspace[];
   policies: SecurityPolicy[];
@@ -108,7 +108,7 @@ export interface SyncConfigResponse {
   syncedAt: string;
 }
 
-/** Desktop upload report */
+/** Informe de carga desde el escritorio. */
 export interface UploadReport {
   userId: string;
   userName: string;
@@ -123,7 +123,7 @@ export interface UploadReport {
   compressed: boolean;
 }
 
-/** Dashboard stats */
+/** Estadísticas del panel principal. */
 export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;

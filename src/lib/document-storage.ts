@@ -32,11 +32,13 @@ export function getWorkspaceProvider(workspace: Pick<Workspace, "cloudPath" | "c
   return "UNSUPPORTED";
 }
 
+// RF-18
 export async function listLocalPdfs(workspace: Pick<Workspace, "cloudPath" | "name">): Promise<DocumentListItem[]> {
   const listing = await listLocalFolder(workspace);
   return listing.files;
 }
 
+// RF-18
 export async function listLocalFolder(workspace: Pick<Workspace, "cloudPath" | "name">, folderId = "") {
   const rootDirectory = getLocalDocumentDirectory(workspace);
   await mkdir(rootDirectory, { recursive: true });
@@ -93,6 +95,7 @@ export async function listLocalFolder(workspace: Pick<Workspace, "cloudPath" | "
   };
 }
 
+// RF-18
 export async function readLocalPdf(workspace: Pick<Workspace, "cloudPath" | "name">, fileId: string) {
   const relativePath = decodeLocalPathId(fileId);
   if (!relativePath.toLowerCase().endsWith(".pdf")) throw new Error("Documento inválido.");
@@ -156,6 +159,7 @@ async function resolveLocalPath(rootDirectory: string, relativePath: string) {
   return resolvedCandidate;
 }
 
+// RF-14
 async function preventLocalCollision(directory: string, fileName: string) {
   const extension = path.extname(fileName);
   const baseName = path.basename(fileName, extension);

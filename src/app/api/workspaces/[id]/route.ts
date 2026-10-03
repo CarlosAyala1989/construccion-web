@@ -25,7 +25,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       return NextResponse.json({ error: "Espacio de trabajo no encontrado" }, { status: 404 });
     }
 
-    const { userIds } = data; // Array of user IDs to assign
+    const { userIds } = data; // Arreglo de identificadores de usuario que se asignarán.
 
     if (!Array.isArray(userIds)) {
       const hasDriveUpdate = "cloudPath" in data || "cloudFolderId" in data || "cloudRefreshToken" in data;
@@ -121,7 +121,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         )
     );
 
-    // Audit log for permission change
+    // Registra el cambio de permisos en la bitácora de auditoría.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,

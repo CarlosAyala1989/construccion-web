@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       }
     });
 
-    // Audit log
+    // Registra el evento en la bitácora de auditoría.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
@@ -83,7 +83,7 @@ export async function DELETE(request: Request) {
 
     const policy = await prisma.securityPolicy.delete({ where: { id } });
 
-    // Audit log
+    // Registra el evento en la bitácora de auditoría.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
@@ -99,4 +99,3 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Error al eliminar política" }, { status: 500 });
   }
 }
-

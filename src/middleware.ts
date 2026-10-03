@@ -3,9 +3,9 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 /**
- * Middleware to protect authenticated routes.
- * Only authenticated users with ADMIN role can access /dashboard/*.
- * Unauthenticated users are redirected to the login page.
+ * Middleware para proteger las rutas autenticadas.
+ * Solo los usuarios autenticados con rol ADMIN pueden acceder a /dashboard/*.
+ * Los usuarios sin autenticar son redirigidos a la página de inicio de sesión.
  */
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
@@ -15,11 +15,11 @@ export async function middleware(request: NextRequest) {
 
   if (isDashboardRoute || isDocumentsRoute) {
     if (!token) {
-      // Redirect to login
+      // Redirige al inicio de sesión.
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Only ADMIN role can access the dashboard
+    // Solo el rol ADMIN puede acceder al panel.
     if (isDashboardRoute && token.role !== "ADMIN") {
       return NextResponse.redirect(new URL("/documents", request.url));
     }

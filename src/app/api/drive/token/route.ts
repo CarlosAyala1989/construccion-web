@@ -5,7 +5,7 @@ import { getGoogleCredentials, readGoogleError } from "@/lib/google-drive";
 
 export const runtime = "nodejs";
 
-// POST /api/drive/token — Exchange authorization code for refresh token
+// POST /api/drive/token — Intercambia un código de autorización por un token de renovación.
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Exchange authorization code for tokens (including refresh_token)
+    // Intercambia el código de autorización por tokens (incluido el token de renovación).
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

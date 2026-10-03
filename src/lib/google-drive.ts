@@ -243,6 +243,7 @@ export async function uploadDrivePdf(folderId: string, fileName: string, pdfBuff
   return { ...storedFile, sha256 };
 }
 
+// RF-14
 async function preventDriveNameCollision(folderId: string, fileName: string, accessToken: string) {
   const files = await listDrivePdfs(folderId, accessToken);
   const existingNames = new Set(files.map(file => file.name));

@@ -10,6 +10,7 @@ import {
 } from "@/lib/document-access";
 import { prisma } from "@/lib/prisma";
 
+// RF-18
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

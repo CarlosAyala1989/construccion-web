@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       }
     });
 
-    // Audit log for workspace creation
+    // Registra en la bitácora la creación del espacio de trabajo.
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,

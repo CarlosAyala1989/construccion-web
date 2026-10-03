@@ -32,14 +32,14 @@ export default function LogsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 25, total: 0, totalPages: 0 });
 
-  // Filters
+  // Filtros.
   const [filterUserId, setFilterUserId] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterWorkspaceId, setFilterWorkspaceId] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
-  // Detail modal
+  // Modal de detalles.
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const fetchLogs = useCallback(async () => {
@@ -142,7 +142,7 @@ export default function LogsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filtros */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <h4 className="text-sm font-medium text-gray-700 mb-4">Filtros de búsqueda</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
@@ -216,7 +216,7 @@ export default function LogsPage() {
         </div>
       </div>
 
-      {/* Detail Modal */}
+      {/* Modal de detalles */}
       {selectedLog && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl max-h-[80vh] overflow-y-auto">
@@ -269,7 +269,7 @@ export default function LogsPage() {
         </div>
       )}
 
-      {/* Logs Table */}
+      {/* Tabla de bitácoras */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -321,7 +321,7 @@ export default function LogsPage() {
           </tbody>
         </table>
 
-        {/* Pagination */}
+        {/* Paginación */}
         {pagination.totalPages > 1 && (
           <div className="bg-white px-6 py-3 flex items-center justify-between border-t border-gray-200">
             <div className="text-sm text-gray-500">

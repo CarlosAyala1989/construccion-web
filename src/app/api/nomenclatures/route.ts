@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// GET /api/nomenclatures — List all nomenclature fields
+// GET /api/nomenclatures — Enumera todos los campos de nomenclatura.
 export async function GET() {
   const session = await getServerSession(authOptions);
 
@@ -18,7 +18,7 @@ export async function GET() {
   return NextResponse.json(fields);
 }
 
-// POST /api/nomenclatures — Create a new nomenclature field
+// POST /api/nomenclatures — Crea un campo de nomenclatura.
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE /api/nomenclatures — Delete a nomenclature field by ID (via query param)
+// DELETE /api/nomenclatures — Elimina un campo de nomenclatura por ID (mediante parámetro de consulta).
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions);
 

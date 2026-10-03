@@ -13,7 +13,7 @@
 
   <style>
     /* ─────────────────────────────────────────────────────────────────────────
-     * Tokens del Sistema de Diseño Apple - Bindings
+     * Variables del sistema de diseño de Apple
      * ───────────────────────────────────────────────────────────────────────── */
     :root {
       --bg: #ffffff;
@@ -84,7 +84,7 @@
     }
   </style>
 
-  <!-- Pinned React & Babel Libraries -->
+  <!-- Bibliotecas de React y Babel con versiones fijadas -->
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -106,26 +106,26 @@
 
     // Componente Principal
     function App() {
-      // Estado para los Tweaks visuales interactivos
+      // Estado de los ajustes visuales interactivos.
       const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
       const [activeTab, setActiveTab] = useState('documents');
       const [searchQuery, setSearchQuery] = useState('');
-      const [viewMode, setViewMode] = useState('list'); // list | grid
+      const [viewMode, setViewMode] = useState('list'); // lista | cuadrícula
       const [toast, setToast] = useState(null);
 
-      // Estados de Modales
+      // Estados de ventanas modales.
       const [showUploadModal, setShowUploadModal] = useState(false);
       const [showAddUserModal, setShowAddUserModal] = useState(false);
       const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
-      // Modales - Datos de formulario
+      // Ventanas modales: datos de formularios.
       const [newUserName, setNewUserName] = useState('');
       const [newUserEmail, setNewUserEmail] = useState('');
       const [newUserRole, setNewUserRole] = useState('Viewer');
       const [newUploadName, setNewUploadName] = useState('');
       const [newUploadTarget, setNewUploadTarget] = useState('Ventas');
 
-      // Simulación de Base de Datos / Estados Reactivos
+      // Simulación de base de datos y estados reactivos.
       const [documents, setDocuments] = useState([
         { id: 1, name: "Presupuesto_Anual_Q3_2026.xlsx", size: "4.2 MB", workspace: "Finanzas", status: "sync", lastSync: "Hace 5 min", modifiedBy: "Carlos Ruiz" },
         { id: 2, name: "Politicas_Privacidad_V3.pdf", size: "1.8 MB", workspace: "Legal", status: "sync", lastSync: "Hace 10 min", modifiedBy: "Ana Gómez" },
@@ -175,7 +175,7 @@
         localBackupPath: "/Users/Admin/Library/Application Support/CloudSync/Backups"
       });
 
-      // Efecto para notificaciones auto-eliminables
+      // Efecto para notificaciones que se eliminan automáticamente.
       useEffect(() => {
         if (toast) {
           const timer = setTimeout(() => setToast(null), 3000);
@@ -183,7 +183,7 @@
         }
       }, [toast]);
 
-      // Filtrado por barra de búsqueda
+      // Filtrado mediante la barra de búsqueda.
       const filteredDocuments = useMemo(() => {
         if (!searchQuery) return documents;
         return documents.filter(doc => 
@@ -209,7 +209,7 @@
         );
       }, [logs, searchQuery]);
 
-      // Funciones de acción interactiva
+      // Funciones para las acciones interactivas.
       const triggerToast = (message, type = 'success') => {
         setToast({ message, type });
       };
@@ -262,7 +262,7 @@
 
       const forceGlobalSync = () => {
         triggerToast("Iniciando sincronización forzada con Google Drive...");
-        // Simular éxito después de 1 segundo
+        // Simula el éxito después de un segundo.
         setTimeout(() => {
           setDocuments(prev => prev.map(doc => doc.status === 'pending' ? { ...doc, status: 'sync', lastSync: "Hace un momento" } : doc));
           triggerToast("¡Sincronización completada con éxito!");
@@ -271,7 +271,7 @@
 
       return (
         <div className="desktop-environment">
-          {/* Estilos dinámicos inyectados por el panel de Tweaks */}
+          {/* Estilos dinámicos inyectados por el panel de ajustes */}
           <style dangerouslySetInnerHTML={{__html: `
             :root {
               --accent: ${tweaks.accentColor};
@@ -288,7 +288,7 @@
             }
           `}} />
 
-          {/* Toast de Notificaciones */}
+          {/* Notificación emergente */}
           {toast && (
             <div className={`toast-container ${toast.type}`}>
               <div className="toast-content">
@@ -298,13 +298,13 @@
             </div>
           )}
 
-          {/* Ventana macOS Simulación */}
+          {/* Ventana simulada de macOS */}
           <div className="window-container">
             
             {/* Barra lateral macOS */}
             <aside className="sidebar">
               
-              {/* Traffic Lights (Control de Ventanas de Apple) */}
+              {/* Controles de ventana de Apple */}
               <div className="window-controls">
                 <span className="close-dot"></span>
                 <span className="minimize-dot"></span>
@@ -376,7 +376,7 @@
                 </button>
               </nav>
 
-              {/* Estado del Almacenamiento Integrado */}
+                {/* Estado del almacenamiento integrado */}
               <div className="sidebar-storage">
                 <div className="storage-labels">
                   <span>Drive Usado</span>
@@ -392,7 +392,7 @@
             {/* Contenido Principal */}
             <main className="content-area">
               
-              {/* Barra de herramientas superior macOS */}
+              {/* Barra de herramientas superior de macOS */}
               <header className="content-header">
                 <div>
                   <h1 className="view-title">
@@ -413,7 +413,7 @@
                   </p>
                 </div>
 
-                {/* Acciones Rápidas */}
+                {/* Acciones rápidas */}
                 <div className="header-actions">
                   {(activeTab === 'documents' || activeTab === 'users' || activeTab === 'logs') && (
                     <div className="search-box-container">
@@ -473,7 +473,7 @@
                 {/* 1. DOCUMENTOS */}
                 {activeTab === 'documents' && (
                   <div>
-                    {/* Tarjetas informativas de Estado */}
+                  {/* Tarjetas informativas de estado */}
                     <div className="stats-row">
                       <div className="stat-card">
                         <span className="stat-value">{documents.length}</span>
@@ -497,7 +497,7 @@
                       </button>
                     </div>
 
-                    {/* Tabla / Lista de Archivos */}
+                  {/* Tabla o lista de archivos */}
                     {viewMode === 'list' ? (
                       <table className="apple-table">
                         <thead>
@@ -750,7 +750,7 @@
                   </div>
                 )}
 
-                {/* 5. LOGS (REGISTRO) */}
+                {/* 5. REGISTRO DE ACTIVIDAD */}
                 {activeTab === 'logs' && (
                   <div>
                     <table className="apple-table">
@@ -861,7 +861,7 @@
            * MODALES INTERACTIVOS
            * ─────────────────────────────────────────────────────────────────── */}
           
-          {/* Modal Subir Archivo */}
+          {/* Modal para subir archivos */}
           {showUploadModal && (
             <div className="modal-backdrop">
               <div className="modal-container">
@@ -902,7 +902,7 @@
             </div>
           )}
 
-          {/* Modal Vincular Espacio */}
+          {/* Modal para vincular un espacio */}
           {showWorkspaceModal && (
             <div className="modal-backdrop">
               <div className="modal-container">
@@ -937,7 +937,7 @@
             </div>
           )}
 
-          {/* Modal Nuevo Usuario */}
+          {/* Modal para crear un usuario */}
           {showAddUserModal && (
             <div className="modal-backdrop">
               <div className="modal-container">
@@ -990,8 +990,8 @@
           )}
 
           {/* ───────────────────────────────────────────────────────────────────
-           * PANEL DE CONFIGURACIÓN DE TWEAKS (DISEÑO DINÁMICO)
-           * Exclusivo del prototipo visual para demostrar personalización
+           * PANEL DE AJUSTES VISUALES (DISEÑO DINÁMICO)
+           * Exclusivo del prototipo visual para mostrar la personalización.
            * ─────────────────────────────────────────────────────────────────── */}
           <div className="tweaks-panel">
             <div className="tweaks-header">
@@ -1074,7 +1074,7 @@
 
   <style>
     /* ─────────────────────────────────────────────────────────────────────────
-     * Estilos Visuales Base y Apple Sonoma/Sequoia Wallpaper Environment
+     * Estilos visuales base y fondo de pantalla de Apple Sonoma/Sequoia
      * ───────────────────────────────────────────────────────────────────────── */
     * {
       box-sizing: border-box;
@@ -1133,7 +1133,7 @@
       transition: background-color var(--motion-base);
     }
 
-    /* Traffic Lights */
+    /* Controles de ventana */
     .window-controls {
       display: flex;
       gap: 8px;
@@ -1338,7 +1338,7 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
-    /* Contenedor Interior con Scroll */
+    /* Contenedor interior con desplazamiento */
     .view-content-wrapper {
       flex: 1;
       padding: var(--space-5) var(--space-6);
@@ -1461,7 +1461,7 @@
       background-color: var(--surface-warm);
     }
 
-    /* Badges de Estado */
+    /* Insignias de estado */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -1508,7 +1508,7 @@
       border: 1px solid var(--border-soft);
     }
 
-    /* Estilo de Cuadrícula de Archivos (Grid View) */
+    /* Vista de cuadrícula de archivos */
     .apple-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1578,7 +1578,7 @@
       margin-top: auto;
     }
 
-    /* Espacios de Trabajo (Grid) */
+    /* Cuadrícula de espacios de trabajo */
     .workspaces-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1668,7 +1668,7 @@
     .status-indicator.synced::before { background-color: var(--success); }
     .status-indicator.paused::before { background-color: var(--meta); }
 
-    /* Switch de Activación Estilo iOS/macOS */
+    /* Interruptor de activación al estilo iOS/macOS */
     .toggle-switch {
       position: relative;
       display: inline-block;
@@ -1712,7 +1712,7 @@
       transform: translateX(20px);
     }
 
-    /* Tabla selectores e inputs */
+    /* Tabla de selectores y campos de entrada */
     .table-select {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1789,7 +1789,7 @@
       line-height: 1.4;
     }
 
-    /* Configuración & Formularios */
+    /* Configuración y formularios */
     .config-form {
       max-width: 640px;
       display: flex;
@@ -1842,12 +1842,12 @@
       gap: var(--space-4);
     }
 
-    /* Fuentes Mono específicas */
+    /* Fuentes monoespaciadas específicas */
     .font-mono {
       font-family: var(--font-mono);
     }
 
-    /* Notificaciones Toast */
+    /* Notificaciones emergentes */
     .toast-container {
       position: absolute;
       top: 24px;
@@ -1990,7 +1990,7 @@
       background: color-mix(in oklab, var(--accent), transparent 94%);
     }
 
-    /* Panel de Tweaks Visuales Flotante */
+    /* Panel flotante de ajustes visuales */
     .tweaks-panel {
       position: fixed;
       bottom: 24px;

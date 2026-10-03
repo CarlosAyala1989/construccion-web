@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-// GET /api/logs — Forensic audit log viewer with filters
+// GET /api/logs — Visor forense de bitácoras de auditoría con filtros.
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "50");
 
-  // Build dynamic where clause
+  // Construye la cláusula where de forma dinámica.
   const where: any = {};
 
   if (userId) where.userId = userId;
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// POST /api/logs — Create audit log entry (used by desktop client sync)
+// POST /api/logs — Crea una entrada de auditoría (usada por la sincronización de escritorio).
 export async function POST(request: Request) {
   try {
     const data = await request.json();

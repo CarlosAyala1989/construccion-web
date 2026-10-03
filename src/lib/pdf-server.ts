@@ -10,6 +10,18 @@ const execFileAsync = promisify(execFile);
 const GHOSTSCRIPT_BIN = process.env.GHOSTSCRIPT_BIN || "gs";
 const PDF_RENDER_SCALE = Number(process.env.PDF_RENDER_SCALE || "1.5");
 const PDF_RENDER_MAX_PAGES = Number(process.env.PDF_RENDER_MAX_PAGES || "60");
+const GHOSTSCRIPT_TIMEOUT_MS = 120_000;
+const GHOSTSCRIPT_MAX_BUFFER_BYTES = 1024 * 1024;
+const PDF_ENCRYPTION_REVISION = 3;
+const PDF_ENCRYPTION_KEY_LENGTH_BITS = 128;
+const PDF_OUTPUT_COMPATIBILITY_LEVEL = "1.4";
+const PDF_VIEW_COMPATIBILITY_LEVEL = "1.7";
+const PDF_READ_ONLY_PERMISSIONS = -4;
+const FIRST_PDF_PAGE_NUMBER = 1;
+const INVALID_PDF_PASSWORD_CODE = 1;
+const REQUIRED_PDF_PASSWORD_CODE = 2;
+const HTTP_INTERNAL_SERVER_ERROR = 500;
+const HTTP_UNPROCESSABLE_ENTITY = 422;
 const STANDARD_FONT_DATA_URL = path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts", path.sep);
 const CMAP_URL = path.join(process.cwd(), "node_modules", "pdfjs-dist", "cmaps", path.sep);
 
@@ -39,11 +51,19 @@ export class PdfProcessingError extends Error {
   }
 }
 
-export function getPdfProcessingErrorStatus(error: unknown, fallbackStatus = 500) {
+// RF-18 — Devuelve el código HTTP asociado al error de procesamiento PDF.
+export function getPdfProcessingErrorStatus(
+  error: unknown,
+  fallbackStatus = HTTP_INTERNAL_SERVER_ERROR
+) {
   return error instanceof PdfProcessingError ? error.status : fallbackStatus;
 }
 
-export async function decryptPdfForViewing(pdfBuffer: Buffer, candidates: CandidatePassword[]): Promise<PdfRewriteResult> {
+// RF-18 — Prueba contraseñas autorizadas y garantiza la limpieza de temporales.
+export async function decryptPdfForViewing(
+  pdfBuffer: Buffer,
+  candidates: CandidatePassword[]
+): Promise<PdfRewriteResult> {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "gobernanza-pdf-"));
 
   try {
@@ -68,7 +88,11 @@ export async function decryptPdfForViewing(pdfBuffer: Buffer, candidates: Candid
   }
 }
 
-export async function renderPdfImagesForViewing(pdfBuffer: Buffer, candidates: CandidatePassword[]): Promise<PdfImageRenderResult> {
+// RF-18 — Renderiza las páginas con una contraseña válida y devuelve sus imágenes.
+export async function renderPdfImagesForViewing(
+  pdfBuffer: Buffer,
+  candidates: CandidatePassword[]
+): Promise<PdfImageRenderResult> {
   const noPasswordPages = await tryRenderPdfToImages(pdfBuffer, null);
   if (noPasswordPages) {
     return { pages: noPasswordPages, matched: null };
@@ -88,6 +112,7 @@ export async function renderPdfImagesForViewing(pdfBuffer: Buffer, candidates: C
   );
 }
 
+// RF-20 — Cifra el PDF temporalmente y devuelve su contenido para almacenamiento.
 export async function encryptPdfForStorage(pdfBuffer: Buffer, password: string) {
   if (!password) return pdfBuffer;
 
@@ -106,17 +131,17 @@ export async function encryptPdfForStorage(pdfBuffer: Buffer, password: string) 
         "-dBATCH",
         "-dSAFER",
         "-sDEVICE=pdfwrite",
-        "-dCompatibilityLevel=1.4",
+        `-dCompatibilityLevel=${PDF_OUTPUT_COMPATIBILITY_LEVEL}`,
         "-dPDFSETTINGS=/prepress",
-        "-dEncryptionR=3",
-        "-dKeyLength=128",
-        "-dPermissions=-4",
+        `-dEncryptionR=${PDF_ENCRYPTION_REVISION}`,
+        `-dKeyLength=${PDF_ENCRYPTION_KEY_LENGTH_BITS}`,
+        `-dPermissions=${PDF_READ_ONLY_PERMISSIONS}`,
         `-sOwnerPassword=${password}`,
         `-sUserPassword=${password}`,
         `-sOutputFile=${outputPath}`,
         inputPath,
       ],
-      { timeout: 120000, maxBuffer: 1024 * 1024 }
+      { timeout: GHOSTSCRIPT_TIMEOUT_MS, maxBuffer: GHOSTSCRIPT_MAX_BUFFER_BYTES }
     );
 
     return readFile(outputPath);
@@ -125,6 +150,7 @@ export async function encryptPdfForStorage(pdfBuffer: Buffer, password: string) 
   }
 }
 
+// RF-15 — Usa el PDF original como alternativa si Ghostscript no logra comprimirlo.
 export async function compressPdfForStorage(pdfBuffer: Buffer) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "gobernanza-pdf-compress-"));
 
@@ -141,27 +167,29 @@ export async function compressPdfForStorage(pdfBuffer: Buffer) {
         "-dBATCH",
         "-dSAFER",
         "-sDEVICE=pdfwrite",
-        "-dCompatibilityLevel=1.4",
+        `-dCompatibilityLevel=${PDF_OUTPUT_COMPATIBILITY_LEVEL}`,
         "-dPDFSETTINGS=/ebook",
         `-sOutputFile=${outputPath}`,
         inputPath,
       ],
-      { timeout: 120000, maxBuffer: 1024 * 1024 }
+      { timeout: GHOSTSCRIPT_TIMEOUT_MS, maxBuffer: GHOSTSCRIPT_MAX_BUFFER_BYTES }
     );
 
     const compressed = await readFile(outputPath);
     return compressed.byteLength < pdfBuffer.byteLength
       ? { buffer: compressed, compressed: true }
       : { buffer: pdfBuffer, compressed: false };
-  } catch {
-    // Compression is optional; encryption and upload can continue with the
-    // original PDF when Ghostscript cannot reduce this particular file.
+  } catch (error) {
+    // La compresión es opcional; el cifrado y la carga pueden continuar con el
+    // PDF original si Ghostscript no logra reducir este archivo.
+    console.warn("No se pudo comprimir el PDF; se conservará el original.", error);
     return { buffer: pdfBuffer, compressed: false };
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
 }
 
+// RF-18 — Devuelve null cuando Ghostscript no puede abrir el PDF con esa clave.
 async function tryRewritePdf(inputPath: string, tempDir: string, password: string | null) {
   const outputPath = path.join(tempDir, `${randomUUID()}.pdf`);
   const args = [
@@ -170,7 +198,7 @@ async function tryRewritePdf(inputPath: string, tempDir: string, password: strin
     "-dBATCH",
     "-dSAFER",
     "-sDEVICE=pdfwrite",
-    "-dCompatibilityLevel=1.7",
+    `-dCompatibilityLevel=${PDF_VIEW_COMPATIBILITY_LEVEL}`,
     `-sOutputFile=${outputPath}`,
   ];
 
@@ -178,13 +206,18 @@ async function tryRewritePdf(inputPath: string, tempDir: string, password: strin
   args.push(inputPath);
 
   try {
-    await execFileAsync(GHOSTSCRIPT_BIN, args, { timeout: 120000, maxBuffer: 1024 * 1024 });
+    await execFileAsync(GHOSTSCRIPT_BIN, args, {
+      timeout: GHOSTSCRIPT_TIMEOUT_MS,
+      maxBuffer: GHOSTSCRIPT_MAX_BUFFER_BYTES,
+    });
     return await readFile(outputPath);
-  } catch {
+  } catch (error) {
+    console.debug("No se pudo reescribir el PDF con una contraseña candidata.", error);
     return null;
   }
 }
 
+// RF-18 — Renderiza todas las páginas dentro del límite y convierte errores a un resultado controlado.
 async function tryRenderPdfToImages(pdfBuffer: Buffer, password: string | null) {
   try {
     const { createCanvas, DOMMatrix, ImageData, Path2D } = await import("@napi-rs/canvas");
@@ -216,7 +249,11 @@ async function tryRenderPdfToImages(pdfBuffer: Buffer, password: string | null) 
 
       const pages = [];
 
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      for (
+        let pageNumber = FIRST_PDF_PAGE_NUMBER;
+        pageNumber <= pdf.numPages;
+        pageNumber += 1
+      ) {
         const page = await pdf.getPage(pageNumber);
         const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
         const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
@@ -243,19 +280,21 @@ async function tryRenderPdfToImages(pdfBuffer: Buffer, password: string | null) 
     if (error instanceof PdfProcessingError) throw error;
 
     throw new PdfProcessingError(
-      "No se pudo renderizar el PDF en el servidor. Revisa que el archivo no esté corrupto o use un cifrado no compatible.",
-      422,
+      "No se pudo renderizar el PDF en el servidor. Revisa que el archivo no esté corrupto " +
+        "o use un cifrado no compatible.",
+      HTTP_UNPROCESSABLE_ENTITY,
       "pdf_render_failed",
       error
     );
   }
 }
 
+// RF-18 — Reconoce exclusivamente errores de contraseña del lector PDF.
 function isPdfPasswordError(error: unknown) {
   return (
     error instanceof Error &&
     error.name === "PasswordException" &&
     "code" in error &&
-    (error.code === 1 || error.code === 2)
+    (error.code === INVALID_PDF_PASSWORD_CODE || error.code === REQUIRED_PDF_PASSWORD_CODE)
   );
 }

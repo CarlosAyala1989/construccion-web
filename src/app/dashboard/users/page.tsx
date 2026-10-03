@@ -53,7 +53,7 @@ export default function UsersPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Form State
+  // Estado del formulario.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,13 +63,13 @@ export default function UsersPage() {
   const [passwordGrantKeys, setPasswordGrantKeys] = useState<string[]>([]);
   const [passwordOptions, setPasswordOptions] = useState<PasswordOption[]>([]);
 
-  // Password Reset Modal
+  // Modal para restablecer la contraseña.
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetUserName, setResetUserName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [resetMessage, setResetMessage] = useState("");
 
-  // Document Access Modal
+  // Modal de acceso a documentos.
   const [editingAccessUser, setEditingAccessUser] = useState<User | null>(null);
   const [editWorkspaceIds, setEditWorkspaceIds] = useState<string[]>([]);
   const [editAccessRole, setEditAccessRole] = useState<"WEB_VIEWER" | "DESKTOP_SCANNER">("DESKTOP_SCANNER");
@@ -78,7 +78,7 @@ export default function UsersPage() {
   const [editPasswordOptions, setEditPasswordOptions] = useState<PasswordOption[]>([]);
   const [isSavingAccess, setIsSavingAccess] = useState(false);
 
-  // Authenticator Modal
+  // Modal de Authenticator.
   const [authenticatorUser, setAuthenticatorUser] = useState<User | null>(null);
   const [authenticatorSetup, setAuthenticatorSetup] = useState<AuthenticatorSetup | null>(null);
   const [authenticatorCode, setAuthenticatorCode] = useState("");
@@ -130,6 +130,7 @@ export default function UsersPage() {
     return res.json() as Promise<PasswordOption[]>;
   }
 
+  // RF-01
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/users", {
@@ -162,6 +163,7 @@ export default function UsersPage() {
     }
   };
 
+  // RF-02
   const toggleUserStatus = async (id: string, currentStatus: boolean) => {
     const action = currentStatus ? "dar de baja" : "reactivar";
     if (!confirm(`¿Deseas ${action} a este usuario?`)) return;
@@ -218,6 +220,7 @@ export default function UsersPage() {
     setEditGrantKeys(user.documentPasswordGrants?.map(grant => grant.credentialKey) || []);
   };
 
+  // RF-19
   const openAuthenticatorModal = async (user: User) => {
     setAuthenticatorUser(user);
     setAuthenticatorSetup(null);
@@ -229,6 +232,7 @@ export default function UsersPage() {
     }
   };
 
+  // RF-19
   const startAuthenticatorSetup = async (userId: string) => {
     setIsAuthenticatorLoading(true);
     setAuthenticatorMessage("");
@@ -247,6 +251,7 @@ export default function UsersPage() {
     }
   };
 
+  // RF-19
   const confirmAuthenticatorSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authenticatorUser) return;
@@ -273,6 +278,7 @@ export default function UsersPage() {
     }
   };
 
+  // RF-19
   const disableAuthenticator = async () => {
     if (!authenticatorUser) return;
     if (!confirm(`¿Deseas desactivar Authenticator para ${authenticatorUser.name}?`)) return;
@@ -363,7 +369,7 @@ export default function UsersPage() {
 
   return (
     <div className="admin-page space-y-6">
-      {/* Password Reset Modal */}
+      {/* Modal para restablecer la contraseña */}
       {resetUserId && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
@@ -411,7 +417,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Document Access Modal */}
+      {/* Modal de acceso a documentos */}
       {editingAccessUser && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl max-h-[88vh] overflow-y-auto">
@@ -514,7 +520,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Authenticator Modal */}
+      {/* Modal de Authenticator */}
       {authenticatorUser && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl max-h-[88vh] overflow-y-auto">

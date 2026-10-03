@@ -7,6 +7,7 @@ import { DRIVE_FOLDER_MIME_TYPE, getDriveAccessToken, getDriveFileMetadata, getG
 
 export const runtime = "nodejs";
 
+// RF-18
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

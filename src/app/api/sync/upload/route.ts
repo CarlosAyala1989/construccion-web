@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// POST /api/sync/upload — Desktop reports a successful document upload
+// POST /api/sync/upload — El escritorio informa que la carga de un documento fue exitosa.
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       compressed,
     } = data;
 
-    // Create audit log for the upload
+    // Crea una bitácora de auditoría para la carga.
     const log = await prisma.auditLog.create({
       data: {
         userId,

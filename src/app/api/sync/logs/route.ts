@@ -1,7 +1,9 @@
+// RF-17
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// POST /api/sync/logs — Desktop client sends batch audit logs
+// POST /api/sync/logs — El cliente de escritorio envía un lote de bitácoras de auditoría.
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
 
@@ -11,13 +13,13 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const { logs } = data; // Array of log entries
+    const { logs } = data; // Arreglo de entradas de bitácora.
 
     if (!Array.isArray(logs) || logs.length === 0) {
       return NextResponse.json({ error: "Se requiere un array de logs" }, { status: 400 });
     }
 
-    // Batch insert audit logs (Unit of Work pattern — all or nothing)
+    // Inserta el lote de bitácoras como una sola unidad de trabajo (todo o nada).
     const created = await prisma.$transaction(
       logs.map((log: any) =>
         prisma.auditLog.create({

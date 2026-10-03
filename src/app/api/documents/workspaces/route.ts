@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { canUseWebDocuments, getAccessibleWorkspaces, getActiveRequestUser } from "@/lib/document-access";
 import { getWorkspaceProvider } from "@/lib/document-storage";
 
+// RF-18
 export async function GET() {
   const session = await getServerSession(authOptions);
 

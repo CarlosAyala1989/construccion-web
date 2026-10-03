@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+// RF-18
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

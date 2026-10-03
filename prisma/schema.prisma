@@ -1,5 +1,5 @@
-// This is your Prisma schema file.
-// Connected to MySQL production database (gobernanza_db).
+// Este es el archivo de esquema de Prisma.
+// Conectado a la base de datos MySQL de producción (gobernanza_db).
 
 generator client {
   provider = "prisma-client-js"
@@ -15,10 +15,10 @@ model User {
   name                   String
   email                  String                  @unique
   password               String
-  role                   String                  @default("EMPLOYEE") // "ADMIN" or "EMPLOYEE"
-  isActive               Boolean                 @default(true) // For Soft Delete
-  accessRole             String                  @default("DESKTOP_SCANNER") // "WEB_VIEWER" or "DESKTOP_SCANNER"
-  documentAccessMode     String                  @default("PASSWORD_SCOPED") // "GLOBAL" or "PASSWORD_SCOPED"
+  role                   String                  @default("EMPLOYEE") // "ADMIN" o "EMPLOYEE".
+  isActive               Boolean                 @default(true) // Para eliminación lógica.
+  accessRole             String                  @default("DESKTOP_SCANNER") // "WEB_VIEWER" o "DESKTOP_SCANNER".
+  documentAccessMode     String                  @default("PASSWORD_SCOPED") // "GLOBAL" o "PASSWORD_SCOPED".
   twoFactorEnabled       Boolean                 @default(false)
   twoFactorSecret        String?                 @db.Text
   twoFactorConfirmedAt   DateTime?
@@ -31,10 +31,10 @@ model User {
 model Workspace {
   id                     String                  @id @default(uuid())
   name                   String
-  cloudPath              String // e.g., "Google Drive: /Contabilidad" or "LOCAL: ~/Docs"
-  cloudFolderId          String? // Google Drive folder ID for direct API upload
-  cloudRefreshToken      String?                 @db.Text // Encrypted OAuth refresh token for cloud provider
-  defaultPassword        String // "Secure by Default" base password
+  cloudPath              String // Por ejemplo, "Google Drive: /Contabilidad" o "LOCAL: ~/Docs".
+  cloudFolderId          String? // ID de carpeta de Google Drive para carga directa mediante API.
+  cloudRefreshToken      String?                 @db.Text // Token OAuth de renovación cifrado del proveedor de nube.
+  defaultPassword        String // Contraseña base segura predeterminada.
   users                  User[]                  @relation("UserWorkspaces")
   policies               SecurityPolicy[]
   documentPasswordGrants DocumentPasswordGrant[]
@@ -45,11 +45,11 @@ model Workspace {
 
 model SecurityPolicy {
   id                     String                  @id @default(uuid())
-  type                   String // "SEMANTIC" (Text/OCR) or "VISUAL" (Template Matching)
-  target                 String // Keyword, exact sentence, or visual template identifier
-  password               String // Cryptographic replacement password
-  priority               Int                     @default(0) // Used for resolving conflicts (Visión > Texto)
-  workspaceId            String? // Optional: link to a specific workspace
+  type                   String // "SEMANTIC" (texto/OCR) o "VISUAL" (coincidencia de plantillas).
+  target                 String // Palabra clave, frase exacta o identificador de plantilla visual.
+  password               String // Contraseña de reemplazo criptográfico.
+  priority               Int                     @default(0) // Se usa para resolver conflictos (visión > texto).
+  workspaceId            String? // Enlace opcional a un espacio de trabajo específico.
   workspace              Workspace?              @relation(fields: [workspaceId], references: [id])
   documentPasswordGrants DocumentPasswordGrant[]
   createdAt              DateTime                @default(now())
@@ -62,7 +62,7 @@ model DocumentPasswordGrant {
   workspaceId      String
   securityPolicyId String?
   credentialKey    String
-  sourceType       String // "DEFAULT" or "POLICY"
+  sourceType       String // "DEFAULT" o "POLICY".
   label            String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -77,34 +77,34 @@ model DocumentPasswordGrant {
 model AuditLog {
   id          String     @id @default(uuid())
   userId      String?
-  userName    String? // Denormalized for historical query performance
-  action      String // e.g. "SCAN_UPLOADED", "ENCRYPTION_APPLIED", "LOGIN", "USER_CREATED"
+  userName    String? // Campo desnormalizado para mejorar consultas históricas.
+  action      String // Por ejemplo, "SCAN_UPLOADED", "ENCRYPTION_APPLIED", "LOGIN" o "USER_CREATED".
   details     String     @db.Text
-  status      String // "SUCCESS" or "FAILURE"
+  status      String // "SUCCESS" o "FAILURE".
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id])
   createdAt   DateTime   @default(now())
 }
 
-// Global system configuration (singleton-like, managed by admin)
+// Configuración global del sistema (registro único administrado por el administrador).
 model Config {
   id                     String   @id @default(uuid())
-  compressionEnabled     Boolean  @default(false) // Enable PDF compression before cloud upload
-  compressionThresholdMb Int      @default(10) // MB threshold for triggering compression
-  deleteLocalAfterUpload Boolean  @default(false) // Remove local copy after confirmed upload
-  cloudProvider          String   @default("MANUAL") // "GOOGLE_DRIVE", "DROPBOX", "MANUAL"
-  cloudCredentials       String?  @db.Text // Encrypted cloud account credentials/tokens (JSON)
+  compressionEnabled     Boolean  @default(false) // Activa la compresión PDF antes de la carga a la nube.
+  compressionThresholdMb Int      @default(10) // Umbral en MB a partir del cual se intenta comprimir.
+  deleteLocalAfterUpload Boolean  @default(false) // Elimina la copia local tras confirmar la carga.
+  cloudProvider          String   @default("MANUAL") // "GOOGLE_DRIVE", "DROPBOX" o "MANUAL".
+  cloudCredentials       String?  @db.Text // Credenciales o tokens cifrados de la cuenta de nube (JSON).
   updatedAt              DateTime @updatedAt
   createdAt              DateTime @default(now())
 }
 
-// Admin-defined nomenclature fields for automatic document classification
+// Campos de nomenclatura definidos por el administrador para clasificar documentos automáticamente.
 model NomenclatureField {
   id         String   @id @default(uuid())
-  fieldName  String // e.g. "Código de Proyecto", "Disciplina", "Fecha"
-  fieldOrder Int      @default(0) // Order in the filename construction
+  fieldName  String // Por ejemplo, "Código de Proyecto", "Disciplina" o "Fecha".
+  fieldOrder Int      @default(0) // Orden de los campos al construir el nombre del archivo.
   isRequired Boolean  @default(true)
-  separator  String   @default("_") // Separator character between fields
+  separator  String   @default("_") // Carácter separador entre campos.
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
