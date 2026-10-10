@@ -2,12 +2,6 @@ name: "Pruebas automatizadas — RF-14 Prevención de colisiones"
 
 on:
   push:
-    paths:
-      - "src/lib/document-storage.ts"
-      - "tests/rf14-local-file-collision.test.ts"
-      - "docs/pruebas/RF-14.md"
-      - ".github/workflows/pruebas-rf-14.yml"
-      - "package.json"
   pull_request:
     paths:
       - "src/lib/document-storage.ts"
