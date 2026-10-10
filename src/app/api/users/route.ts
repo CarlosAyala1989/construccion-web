@@ -17,10 +17,11 @@ import {
 } from "@/lib/user-creation";
 
 function sanitizeUser<T extends { password: string; twoFactorSecret: string | null }>(user: T) {
-  const { password: _password, twoFactorSecret: _twoFactorSecret, ...safeUser } = user;
-  void _password;
-  void _twoFactorSecret;
-  return safeUser;
+  const safeEntries = Object.entries(user).filter(
+    ([field]) => field !== "password" && field !== "twoFactorSecret",
+  );
+
+  return Object.fromEntries(safeEntries) as Omit<T, "password" | "twoFactorSecret">;
 }
 
 async function validateWorkspaceIds(workspaceIds: string[]) {
