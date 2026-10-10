@@ -1,0 +1,46 @@
+name: "Pruebas automatizadas — RF-02 Desactivación lógica de cuenta"
+
+on:
+  push:
+    paths:
+      - "src/lib/user-status.ts"
+      - "tests/rf02-user-status.test.ts"
+      - "docs/pruebas/RF-02.md"
+      - ".github/workflows/pruebas-rf-02.yml"
+      - "package.json"
+  pull_request:
+    paths:
+      - "src/lib/user-status.ts"
+      - "tests/rf02-user-status.test.ts"
+      - "docs/pruebas/RF-02.md"
+      - ".github/workflows/pruebas-rf-02.yml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas-rf-02:
+    name: Verificación automatizada RF-02
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Ejecutar pruebas RF-02
+        run: npx tsx --test tests/rf02-user-status.test.ts
+      - name: Validar estilo
+        run: npx eslint src/lib/user-status.ts tests/rf02-user-status.test.ts
+      - name: Registrar resultado en el resumen
+        if: always()
+        run: |
+          echo "### RF-02 — Desactivación lógica de cuenta" >> "$GITHUB_STEP_SUMMARY"
+          echo "Categorías: unitaria, integración simulada, funcional, rendimiento/estrés y aceptación automatizada." >> "$GITHUB_STEP_SUMMARY"
+          echo "Resultado del trabajo: **${{ job.status }}**" >> "$GITHUB_STEP_SUMMARY"
