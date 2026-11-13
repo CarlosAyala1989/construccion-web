@@ -1,3 +1,6 @@
+/**
+ * Funciones de servicio para usuario creation.
+ */
 // RF-01
 
 import {
@@ -15,6 +18,7 @@ export const AUDIT_STATUS_SUCCESS = "SUCCESS";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Define los datos de create usuario payload. */
 export type CreateUserPayload = {
   name: string;
   email: string;
@@ -25,14 +29,17 @@ export type CreateUserPayload = {
   passwordGrantKeys: string[];
 };
 
+/** Define los datos de parse result. */
 type ParseResult =
   | { ok: true; value: CreateUserPayload }
   | { ok: false; error: string };
 
+/** Comprueba record en usuario creation. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Interpreta string array en usuario creation. */
 function parseStringArray(
   value: unknown,
   fieldName: string
@@ -46,6 +53,7 @@ function parseStringArray(
   return { ok: true, value: [...new Set(value.map(item => item.trim()))] };
 }
 
+/** Interpreta create usuario payload en usuario creation. */
 export function parseCreateUserPayload(input: unknown): ParseResult {
   if (!isRecord(input)) {
     return { ok: false, error: "El cuerpo de la solicitud no es válido." };

@@ -1,3 +1,6 @@
+/**
+ * Funciones de servicio para TOTP.
+ */
 // RF-19
 
 import QRCode from "qrcode";
@@ -7,16 +10,19 @@ const DEFAULT_AUTHENTICATOR_ISSUER = "Gobernanza Documental";
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
 
+/** Define los datos de authenticator setup. */
 export type AuthenticatorSetup = {
   secret: string;
   otpauthUrl: string;
   qrCodeDataUrl: string;
 };
 
+/** Crea TOTP secreto en TOTP. */
 export function createTotpSecret() {
   return generateSecret({ length: 20 });
 }
 
+/** Crea authenticator setup en TOTP. */
 export async function createAuthenticatorSetup(email: string, secret = createTotpSecret()): Promise<AuthenticatorSetup> {
   const issuer = process.env.AUTHENTICATOR_ISSUER || DEFAULT_AUTHENTICATOR_ISSUER;
   const otpauthUrl = generateURI({
@@ -39,6 +45,7 @@ export async function createAuthenticatorSetup(email: string, secret = createTot
   };
 }
 
+/** Verifica TOTP código en TOTP. */
 export async function verifyTotpCode(secret: string | null | undefined, code: string | null | undefined) {
   const normalizedCode = code?.replace(/\s+/g, "") || "";
 

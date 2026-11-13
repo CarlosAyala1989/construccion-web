@@ -1,3 +1,6 @@
+/**
+ * Funciones de servicio para reCAPTCHA.
+ */
 // RF-19
 
 type RecaptchaVerifyResponse = {
@@ -7,6 +10,7 @@ type RecaptchaVerifyResponse = {
   "error-codes"?: string[];
 };
 
+/** Define los datos de reCAPTCHA result. */
 type RecaptchaResult = {
   ok: boolean;
   message?: string;
@@ -14,6 +18,7 @@ type RecaptchaResult = {
 
 const RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 
+/** Verifica reCAPTCHA token en reCAPTCHA. */
 export async function verifyRecaptchaToken(token: string | undefined | null): Promise<RecaptchaResult> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 

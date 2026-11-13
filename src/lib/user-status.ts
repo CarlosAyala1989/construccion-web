@@ -1,3 +1,6 @@
+/**
+ * Funciones de servicio para usuario estado.
+ */
 // RF-02
 
 import type { Prisma } from "@prisma/client";
@@ -16,24 +19,29 @@ export const ACCOUNT_STATUS_USER_SELECT = {
   isActive: true,
 } satisfies Prisma.UserSelect;
 
+/** Define los datos de cuenta estado usuario. */
 export type AccountStatusUser = Prisma.UserGetPayload<{
   select: typeof ACCOUNT_STATUS_USER_SELECT;
 }>;
 
+/** Define los datos de cuenta estado payload. */
 export type AccountStatusPayload = {
   isActive: boolean;
 };
 
+/** Define los datos de cuenta estado change result. */
 export type AccountStatusChangeResult = {
   user: AccountStatusUser;
   changed: boolean;
   message: string;
 };
 
+/** Define los datos de parse cuenta estado result. */
 type ParseAccountStatusResult =
   | { ok: true; value: AccountStatusPayload }
   | { ok: false; error: string };
 
+/** Define los datos de change cuenta estado input. */
 type ChangeAccountStatusInput = {
   actorUserId: string;
   actorUserName: string | null | undefined;
@@ -48,10 +56,12 @@ export class AccountStatusError extends Error {
   }
 }
 
+/** Comprueba record en usuario estado. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Interpreta cuenta estado payload en usuario estado. */
 export function parseAccountStatusPayload(input: unknown): ParseAccountStatusResult {
   if (!isRecord(input)) {
     return { ok: false, error: "El cuerpo de la solicitud no es válido." };
@@ -132,10 +142,12 @@ export async function changeUserAccountStatus({
   });
 }
 
+/** Obtiene cuenta estado audit action en usuario estado. */
 export function getAccountStatusAuditAction(isActive: boolean) {
   return isActive ? AUDIT_ACTION_USER_REACTIVATED : AUDIT_ACTION_USER_DEACTIVATED;
 }
 
+/** Obtiene cuenta estado message en usuario estado. */
 export function getAccountStatusMessage(user: AccountStatusUser, changed: boolean) {
   const state = user.isActive ? "reactivada" : "desactivada";
   return changed
@@ -143,6 +155,7 @@ export function getAccountStatusMessage(user: AccountStatusUser, changed: boolea
     : `La cuenta de ${user.name} ya se encontraba ${state}.`;
 }
 
+/** Obtiene cuenta estado audit details en usuario estado. */
 export function getAccountStatusAuditDetails(user: AccountStatusUser) {
   const state = user.isActive ? "reactivado" : "dado de baja (Soft Delete)";
   return `Usuario ${user.name} (${user.email}) [ID: ${user.id}] ${state}. Identidad preservada para trazabilidad histórica.`;
