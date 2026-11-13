@@ -1,3 +1,6 @@
+/**
+ * Ruta API documents/workspaces: procesa solicitudes, valida condiciones de acceso y responde al cliente.
+ */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";

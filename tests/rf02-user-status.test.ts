@@ -1,3 +1,6 @@
+/**
+ * Middleware que aplica las condiciones de acceso a rutas web.
+ */
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { prisma } from "../src/lib/prisma";
@@ -9,6 +12,7 @@ import {
   parseAccountStatusPayload,
 } from "../src/lib/user-status";
 
+/** Define los datos de prueba usuario. */
 type TestUser = {
   id: string;
   name: string;
@@ -17,6 +21,7 @@ type TestUser = {
   isActive: boolean;
 };
 
+/** Define los datos de prueba transaction. */
 type TestTransaction = {
   user: {
     findUnique: (args: { where: { id: string } }) => Promise<TestUser | null>;
@@ -27,6 +32,7 @@ type TestTransaction = {
   };
 };
 
+/** Crea transaction fixture en rf02 usuario estado. */
 function createTransactionFixture(initialUsers: TestUser[]) {
   const users = new Map(initialUsers.map(user => [user.id, { ...user }]));
   const auditEntries: Array<Record<string, unknown>> = [];
@@ -52,6 +58,7 @@ function createTransactionFixture(initialUsers: TestUser[]) {
   return { users, auditEntries, transaction };
 }
 
+/** Gestiona prisma transaction en rf02 usuario estado. */
 function replacePrismaTransaction(transaction: TestTransaction) {
   const client = prisma as unknown as {
     $transaction: (callback: (transaction: TestTransaction) => Promise<unknown>) => Promise<unknown>;
@@ -64,6 +71,7 @@ function replacePrismaTransaction(transaction: TestTransaction) {
   };
 }
 
+/** Crea usuario en rf02 usuario estado. */
 function createUser(id: string, role = "EMPLOYEE"): TestUser {
   return {
     id,

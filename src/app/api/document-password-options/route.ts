@@ -1,8 +1,12 @@
+/**
+ * Ruta API document-password-options: procesa solicitudes, valida condiciones de acceso y responde al cliente.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getPasswordOptionsForWorkspaces } from "@/lib/document-access";
 
+/** Atiende GET de document-password-options y devuelve la respuesta HTTP correspondiente. */
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

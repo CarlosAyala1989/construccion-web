@@ -1,3 +1,4 @@
+-- Migración SQL web document access; se ejecuta en orden cronológico.
 ALTER TABLE `User`
   ADD COLUMN `documentAccessMode` VARCHAR(191) NOT NULL DEFAULT 'PASSWORD_SCOPED';
 

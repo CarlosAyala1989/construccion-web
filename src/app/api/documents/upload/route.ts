@@ -1,3 +1,6 @@
+/**
+ * Ruta API documents/upload: procesa solicitudes, valida condiciones de acceso y responde al cliente.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+/** Atiende POST de documents/upload y devuelve la respuesta HTTP correspondiente. */
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

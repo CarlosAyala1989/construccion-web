@@ -1,9 +1,13 @@
+/**
+ * Controlador de workspaces: valida la petición y devuelve su resultado HTTP.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getDriveAccessToken, getGoogleDriveErrorStatus } from "@/lib/google-drive";
 
+/** Procesa GET para workspaces y produce la respuesta HTTP. */
 export async function GET() {
   const session = await getServerSession(authOptions);
   
@@ -18,6 +22,7 @@ export async function GET() {
   return NextResponse.json(workspaces);
 }
 
+/** Procesa POST para workspaces y produce la respuesta HTTP. */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   

@@ -8,6 +8,7 @@ import { createAuthenticatorSetup, createTotpSecret, verifyTotpCode } from "@/li
 
 export const runtime = "nodejs";
 
+/** Gestiona admin sesión en el contexto de users/[id]/authenticator. */
 async function requireAdminSession() {
   const session = await getServerSession(authOptions);
 
@@ -18,6 +19,7 @@ async function requireAdminSession() {
   return session;
 }
 
+/** Resuelve la petición HTTP POST de users/[id]/authenticator y devuelve el resultado o error correspondiente. */
 export async function POST(_request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await requireAdminSession();
 
@@ -78,6 +80,7 @@ export async function POST(_request: Request, props: { params: Promise<{ id: str
   }
 }
 
+/** Resuelve la petición HTTP PATCH de users/[id]/authenticator y devuelve el resultado o error correspondiente. */
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await requireAdminSession();
 
@@ -137,6 +140,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 }
 
+/** Resuelve la petición HTTP DELETE de users/[id]/authenticator y devuelve el resultado o error correspondiente. */
 export async function DELETE(_request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await requireAdminSession();
 

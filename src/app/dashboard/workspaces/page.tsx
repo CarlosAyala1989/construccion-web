@@ -1,10 +1,14 @@
 "use client";
+/**
+ * Interfaz de administración de workspaces/page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { useState, useEffect } from "react";
 import Script from "next/script";
 import DriveFolderBrowser from "@/components/DriveFolderBrowser";
 import { AppIcon } from "@/components/AppIcon";
 
+/** Contrato de datos User utilizado por la pantalla. */
 type User = {
   id: string;
   name: string;
@@ -12,6 +16,7 @@ type User = {
   isActive: boolean;
 };
 
+/** Contrato de datos Workspace utilizado por la pantalla. */
 type Workspace = {
   id: string;
   name: string;
@@ -22,16 +27,19 @@ type Workspace = {
   users?: User[];
 };
 
+/** Contrato de datos UserApiItem utilizado por la pantalla. */
 type UserApiItem = User & {
   role: string;
   workspaces?: Array<Pick<Workspace, "id">>;
 };
 
+/** Contrato de datos DriveOauthConfig utilizado por la pantalla. */
 type DriveOauthConfig = {
   clientId?: string;
   isConfigured?: boolean;
 };
 
+/** Renderiza WorkspacesPage y coordina la experiencia de usuario. */
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -61,6 +69,7 @@ export default function WorkspacesPage() {
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
+  /** Consulta espacios de trabajo durante la interacción con pantalla workspaces. */
   const fetchWorkspaces = async () => {
     const res = await fetch("/api/workspaces");
     const data = await res.json() as Workspace[];
@@ -68,12 +77,14 @@ export default function WorkspacesPage() {
     setIsLoading(false);
   };
 
+  /** Consulta usuarios durante la interacción con pantalla workspaces. */
   const fetchUsers = async () => {
     const res = await fetch("/api/users");
     const data = await res.json() as UserApiItem[];
     setAllUsers(data.filter(user => user.role !== "ADMIN"));
   };
 
+  /** Consulta Drive oauth configuración durante la interacción con pantalla workspaces. */
   const fetchDriveOauthConfig = async () => {
     const res = await fetch("/api/drive/oauth-config");
     if (!res.ok) return;
@@ -91,6 +102,7 @@ export default function WorkspacesPage() {
     });
   }, []);
 
+  /** Gestiona submit durante la interacción con pantalla workspaces. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/workspaces", {
@@ -117,6 +129,7 @@ export default function WorkspacesPage() {
     }
   };
 
+  /** Abre assign modal durante la interacción con pantalla workspaces. */
   const openAssignModal = (workspace: Workspace) => {
     setEditingWorkspace(workspace);
     fetch(`/api/users`)
@@ -129,12 +142,14 @@ export default function WorkspacesPage() {
       });
   };
 
+  /** Alterna usuario selection durante la interacción con pantalla workspaces. */
   const toggleUserSelection = (userId: string) => {
     setSelectedUserIds(prev =>
       prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
     );
   };
 
+  /** Gestiona assign submit durante la interacción con pantalla workspaces. */
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingWorkspace) return;
@@ -162,6 +177,7 @@ export default function WorkspacesPage() {
     setShowFolderPicker(true);
   };
 
+  /** Gestiona local selection durante la interacción con pantalla workspaces. */
   const confirmLocalSelection = () => {
     const path = localPath.trim();
     if (!path) {
@@ -174,6 +190,7 @@ export default function WorkspacesPage() {
     setShowFolderPicker(false);
   };
 
+  /** Gestiona dropbox selection durante la interacción con pantalla workspaces. */
   const confirmDropboxSelection = () => {
     const path = dropboxPath.trim();
     if (!path) {
@@ -186,6 +203,7 @@ export default function WorkspacesPage() {
     setShowFolderPicker(false);
   };
 
+  /** Gestiona Drive select durante la interacción con pantalla workspaces. */
   const handleDriveSelect = (path: string, folderId: string, driveRefreshToken: string | null) => {
     if (!driveRefreshToken) {
       alert("Google no devolvió refresh token. Revoca el acceso de la app en tu cuenta Google y vuelve a conectar Drive.");
@@ -204,11 +222,13 @@ export default function WorkspacesPage() {
     setShowDriveBrowser(false);
   };
 
+  /** Abre Drive reconnect durante la interacción con pantalla workspaces. */
   const openDriveReconnect = (workspace: Workspace) => {
     setReconnectingWorkspace(workspace);
     setShowDriveBrowser(true);
   };
 
+  /** Gestiona Drive espacio de trabajo durante la interacción con pantalla workspaces. */
   const reconnectDriveWorkspace = async (workspaceId: string, path: string, folderId: string, driveRefreshToken: string) => {
     setIsReconnectingDrive(true);
 

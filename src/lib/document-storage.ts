@@ -1,10 +1,15 @@
+/**
+ * Utilidades compartidas de documento almacenamiento para servicios de la aplicación documental.
+ */
 import type { Workspace } from "@prisma/client";
 import { mkdir, readFile, readdir, realpath, stat, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
 
+/** Describe los campos y tipos de documento proveedor. */
 export type DocumentProvider = "GOOGLE_DRIVE" | "LOCAL" | "UNSUPPORTED";
 
+/** Describe los campos y tipos de documento list elemento. */
 export type DocumentListItem = {
   id: string;
   name: string;
@@ -13,6 +18,7 @@ export type DocumentListItem = {
   modifiedTime?: string;
 };
 
+/** Describe los campos y tipos de documento carpeta elemento. */
 export type DocumentFolderItem = {
   id: string;
   name: string;
@@ -20,6 +26,7 @@ export type DocumentFolderItem = {
   modifiedTime?: string;
 };
 
+/** Obtiene espacio de trabajo proveedor dentro de documento almacenamiento. */
 export function getWorkspaceProvider(workspace: Pick<Workspace, "cloudPath" | "cloudFolderId" | "cloudRefreshToken">): DocumentProvider {
   if (workspace.cloudPath.startsWith("Google Drive:") || workspace.cloudPath.startsWith("Drive:")) {
     return workspace.cloudFolderId && workspace.cloudRefreshToken ? "GOOGLE_DRIVE" : "UNSUPPORTED";
@@ -109,6 +116,7 @@ export async function readLocalPdf(workspace: Pick<Workspace, "cloudPath" | "nam
   };
 }
 
+/** Gestiona local PDF dentro de documento almacenamiento. */
 export async function writeLocalPdf(workspace: Pick<Workspace, "cloudPath" | "name">, fileName: string, buffer: Buffer, folderId = "") {
   const rootDirectory = getLocalDocumentDirectory(workspace);
   await mkdir(rootDirectory, { recursive: true });
@@ -125,28 +133,33 @@ export async function writeLocalPdf(workspace: Pick<Workspace, "cloudPath" | "na
   };
 }
 
+/** Gestiona PDF archivo nombre dentro de documento almacenamiento. */
 export function sanitizePdfFileName(fileName: string) {
   const baseName = path.basename(fileName).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim() || `documento-${Date.now()}`;
   const withExtension = baseName.toLowerCase().endsWith(".pdf") ? baseName : `${baseName}.pdf`;
   return withExtension;
 }
 
+/** Obtiene local documento directory dentro de documento almacenamiento. */
 function getLocalDocumentDirectory(workspace: Pick<Workspace, "cloudPath" | "name">) {
   const basePath = workspace.cloudPath.replace(/^LOCAL:\s*/, "").trim();
   const expandedBasePath = basePath.startsWith("~") ? path.join(os.homedir(), basePath.slice(1)) : basePath;
   return path.join(expandedBasePath, workspace.name);
 }
 
+/** Gestiona local ruta id dentro de documento almacenamiento. */
 function encodeLocalPathId(relativePath: string) {
   return Buffer.from(relativePath, "utf8").toString("base64url");
 }
 
+/** Gestiona local ruta id dentro de documento almacenamiento. */
 function decodeLocalPathId(itemId: string) {
   const relativePath = Buffer.from(itemId, "base64url").toString("utf8");
   if (!relativePath || path.isAbsolute(relativePath)) throw new Error("Identificador de ruta inválido.");
   return relativePath;
 }
 
+/** Resuelve local ruta dentro de documento almacenamiento. */
 async function resolveLocalPath(rootDirectory: string, relativePath: string) {
   const resolvedRoot = await realpath(rootDirectory);
   const candidatePath = path.resolve(resolvedRoot, relativePath);
@@ -174,6 +187,7 @@ async function preventLocalCollision(directory: string, fileName: string) {
   return candidate;
 }
 
+/** Gestiona exists dentro de documento almacenamiento. */
 async function exists(filePath: string) {
   try {
     await stat(filePath);

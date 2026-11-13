@@ -1,7 +1,11 @@
 "use client";
+/**
+ * Interfaz de administración de logs/page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
+/** Contrato de datos AuditLog utilizado por la pantalla. */
 type AuditLog = {
   id: string;
   userId: string | null;
@@ -14,17 +18,20 @@ type AuditLog = {
   createdAt: string;
 };
 
+/** Contrato de datos Workspace utilizado por la pantalla. */
 type Workspace = {
   id: string;
   name: string;
 };
 
+/** Contrato de datos User utilizado por la pantalla. */
 type User = {
   id: string;
   name: string;
   email: string;
 };
 
+/** Renderiza LogsPage y coordina la experiencia de usuario. */
 export default function LogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -81,6 +88,7 @@ export default function LogsPage() {
     void Promise.resolve().then(() => fetchLogs());
   }, [fetchLogs]);
 
+  /** Gestiona export durante la interacción con pantalla logs. */
   const handleExport = () => {
     const params = new URLSearchParams();
     if (filterUserId) params.set("userId", filterUserId);
@@ -92,6 +100,7 @@ export default function LogsPage() {
     window.open(`/api/logs/export?${params.toString()}`, "_blank");
   };
 
+  /** Restablece filtros durante la interacción con pantalla logs. */
   const resetFilters = () => {
     setFilterUserId("");
     setFilterStatus("");
@@ -101,6 +110,7 @@ export default function LogsPage() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  /** Formatea fecha durante la interacción con pantalla logs. */
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString("es-MX", {
       year: "numeric",

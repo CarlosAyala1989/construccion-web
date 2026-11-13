@@ -1,14 +1,19 @@
 "use client";
+/**
+ * Interfaz de administración de users/page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
+/** Contrato de datos Workspace utilizado por la pantalla. */
 type Workspace = {
   id: string;
   name: string;
   cloudPath: string;
 };
 
+/** Contrato de datos PasswordGrant utilizado por la pantalla. */
 type PasswordGrant = {
   id: string;
   workspaceId: string;
@@ -17,6 +22,7 @@ type PasswordGrant = {
   label: string;
 };
 
+/** Contrato de datos PasswordOption utilizado por la pantalla. */
 type PasswordOption = {
   credentialKey: string;
   workspaceId: string;
@@ -26,6 +32,7 @@ type PasswordOption = {
   policyType: string | null;
 };
 
+/** Contrato de datos User utilizado por la pantalla. */
 type User = {
   id: string;
   name: string;
@@ -40,6 +47,7 @@ type User = {
   documentPasswordGrants: PasswordGrant[];
 };
 
+/** Contrato de datos AuthenticatorSetup utilizado por la pantalla. */
 type AuthenticatorSetup = {
   email: string;
   twoFactorEnabled: boolean;
@@ -48,6 +56,7 @@ type AuthenticatorSetup = {
   qrCodeDataUrl: string;
 };
 
+/** Renderiza UsersPage y coordina la experiencia de usuario. */
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -106,6 +115,7 @@ export default function UsersPage() {
     });
   }, [editingAccessUser, editWorkspaceIds]);
 
+  /** Consulta usuarios durante la interacción con pantalla users. */
   async function fetchUsers() {
     const res = await fetch("/api/users");
     const data = await res.json();
@@ -113,12 +123,14 @@ export default function UsersPage() {
     setIsLoading(false);
   }
 
+  /** Consulta espacios de trabajo durante la interacción con pantalla users. */
   async function fetchWorkspaces() {
     const res = await fetch("/api/workspaces");
     const data = await res.json();
     setWorkspaces(data);
   }
 
+  /** Carga contraseña opciones durante la interacción con pantalla users. */
   async function loadPasswordOptions(workspaceIds: string[]) {
     if (workspaceIds.length === 0) return [];
 
@@ -181,30 +193,35 @@ export default function UsersPage() {
     }
   };
 
+  /** Alterna espacio de trabajo durante la interacción con pantalla users. */
   const toggleWorkspace = (id: string) => {
     setSelectedWorkspaces(prev => 
       prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]
     );
   };
 
+  /** Alterna contraseña permiso durante la interacción con pantalla users. */
   const togglePasswordGrant = (credentialKey: string) => {
     setPasswordGrantKeys(prev =>
       prev.includes(credentialKey) ? prev.filter(key => key !== credentialKey) : [...prev, credentialKey]
     );
   };
 
+  /** Alterna edit espacio de trabajo durante la interacción con pantalla users. */
   const toggleEditWorkspace = (id: string) => {
     setEditWorkspaceIds(prev =>
       prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]
     );
   };
 
+  /** Alterna edit contraseña permiso durante la interacción con pantalla users. */
   const toggleEditPasswordGrant = (credentialKey: string) => {
     setEditGrantKeys(prev =>
       prev.includes(credentialKey) ? prev.filter(key => key !== credentialKey) : [...prev, credentialKey]
     );
   };
 
+  /** Abre restablecimiento modal durante la interacción con pantalla users. */
   const openResetModal = (userId: string, userName: string) => {
     setResetUserId(userId);
     setResetUserName(userName);
@@ -212,6 +229,7 @@ export default function UsersPage() {
     setResetMessage("");
   };
 
+  /** Abre acceso modal durante la interacción con pantalla users. */
   const openAccessModal = (user: User) => {
     setEditingAccessUser(user);
     setEditWorkspaceIds(user.workspaces.map(ws => ws.id));
@@ -303,6 +321,7 @@ export default function UsersPage() {
     }
   };
 
+  /** Gestiona save acceso durante la interacción con pantalla users. */
   const handleSaveAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAccessUser) return;
@@ -328,6 +347,7 @@ export default function UsersPage() {
     }
   };
 
+  /** Gestiona restablecimiento contraseña durante la interacción con pantalla users. */
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetUserId) return;
@@ -351,6 +371,7 @@ export default function UsersPage() {
     }
   };
 
+  /** Gestiona valid permiso keys durante la interacción con pantalla users. */
   function keepValidGrantKeys(currentKeys: string[], options: PasswordOption[]) {
     const allowedKeys = new Set(options.map(option => option.credentialKey));
     const byWorkspace = new Map(options.map(option => [option.credentialKey, option.workspaceId]));

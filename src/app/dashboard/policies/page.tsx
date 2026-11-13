@@ -1,7 +1,11 @@
 "use client";
+/**
+ * Interfaz de administración de policies/page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
+/** Contrato de datos Policy utilizado por la pantalla. */
 type Policy = {
   id: string;
   type: string;
@@ -12,11 +16,13 @@ type Policy = {
   workspace: { name: string } | null;
 };
 
+/** Contrato de datos Workspace utilizado por la pantalla. */
 type Workspace = {
   id: string;
   name: string;
 };
 
+/** Renderiza PoliciesPage y coordina la experiencia de usuario. */
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -44,6 +50,7 @@ export default function PoliciesPage() {
     void Promise.resolve().then(() => Promise.all([fetchPolicies(), fetchWorkspaces()]));
   }, [fetchPolicies, fetchWorkspaces]);
 
+  /** Gestiona submit durante la interacción con pantalla policies. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/policies", {
@@ -69,6 +76,7 @@ export default function PoliciesPage() {
     }
   };
 
+  /** Gestiona delete durante la interacción con pantalla policies. */
   const handleDelete = async (id: string) => {
     if (!confirm("¿Eliminar esta política de seguridad? Esta acción es irreversible.")) return;
 

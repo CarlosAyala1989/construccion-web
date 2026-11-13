@@ -1,3 +1,6 @@
+/**
+ * API sync/config: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 

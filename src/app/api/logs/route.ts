@@ -1,3 +1,6 @@
+/**
+ * API logs: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";

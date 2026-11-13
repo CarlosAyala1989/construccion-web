@@ -1,4 +1,5 @@
 // RF-19
+// Conecta NextAuth a los métodos GET y POST para el inicio y control de sesión.
 
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";

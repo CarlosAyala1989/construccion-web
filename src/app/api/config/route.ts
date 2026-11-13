@@ -1,3 +1,6 @@
+/**
+ * Ruta API config: procesa solicitudes, valida condiciones de acceso y responde al cliente.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";

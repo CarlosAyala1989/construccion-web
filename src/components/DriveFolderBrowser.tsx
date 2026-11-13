@@ -1,4 +1,7 @@
 "use client";
+/**
+ * Componente visual DriveFolderBrowser: administra su presentación y eventos de usuario.
+ */
 
 import { AppIcon } from "@/components/AppIcon";
 import { useState, useEffect, useCallback } from "react";
@@ -9,11 +12,13 @@ type DriveFolder = {
   name: string;
 };
 
+/** Describe los campos y tipos de breadcrumb elemento. */
 type BreadcrumbItem = {
   id: string;
   name: string;
 };
 
+/** Describe los campos y tipos de props. */
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -21,15 +26,18 @@ type Props = {
   clientId: string;
 };
 
+/** Describe los campos y tipos de Google código response. */
 type GoogleCodeResponse = {
   code?: string;
   error?: string;
 };
 
+/** Describe los campos y tipos de Google código cliente. */
 type GoogleCodeClient = {
   requestCode: () => void;
 };
 
+/** Describe los campos y tipos de Google o auth2. */
 type GoogleOAuth2 = {
   initCodeClient: (config: {
     client_id: string;
@@ -41,6 +49,7 @@ type GoogleOAuth2 = {
   }) => GoogleCodeClient;
 };
 
+/** Describe los campos y tipos de Google window. */
 type GoogleWindow = Window & {
   google?: {
     accounts?: {
@@ -49,15 +58,18 @@ type GoogleWindow = Window & {
   };
 };
 
+/** Describe los campos y tipos de token exchange response. */
 type TokenExchangeResponse = {
   access_token?: string;
   refresh_token?: string | null;
 };
 
+/** Describe los campos y tipos de api error response. */
 type ApiErrorResponse = {
   error?: string;
 };
 
+/** Describe los campos y tipos de Drive carpetas response. */
 type DriveFoldersResponse = ApiErrorResponse & {
   folders?: DriveFolder[];
 };
@@ -194,6 +206,7 @@ export default function DriveFolderBrowser({ isOpen, onClose, onSelect, clientId
     setSelectedFolder(null);
   };
 
+  /** Gestiona to breadcrumb dentro de Drive carpeta browser. */
   const navigateToBreadcrumb = (index: number) => {
     setBreadcrumb(prev => prev.slice(0, index + 1));
     setSelectedFolder(null);

@@ -1,3 +1,6 @@
+/**
+ * Funciones de servicio para autenticación.
+ */
 // RF-19
 
 import { NextAuthOptions } from "next-auth";

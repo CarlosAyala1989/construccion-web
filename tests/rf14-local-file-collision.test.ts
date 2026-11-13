@@ -1,3 +1,6 @@
+/**
+ * Middleware que aplica las condiciones de acceso a rutas web.
+ */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -10,11 +13,13 @@ import {
   writeLocalPdf,
 } from "../src/lib/document-storage";
 
+/** Define los datos de local espacio de trabajo. */
 type LocalWorkspace = {
   cloudPath: string;
   name: string;
 };
 
+/** Crea espacio de trabajo fixture en rf14 local archivo colisión. */
 async function createWorkspaceFixture() {
   const basePath = await mkdtemp(path.join(tmpdir(), "gobernanza-rf14-"));
   const workspace: LocalWorkspace = {

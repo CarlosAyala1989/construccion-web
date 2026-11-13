@@ -1,3 +1,6 @@
+/**
+ * Componente visual AppIcon: administra su presentación y eventos de usuario.
+ */
 type IconName =
   | "activity"
   | "alert"
@@ -39,6 +42,7 @@ const paths: Record<IconName, React.ReactNode> = {
   workspaces: <><rect x="3" y="4" width="8" height="7" rx="1" /><rect x="13" y="4" width="8" height="7" rx="1" /><rect x="3" y="13" width="8" height="7" rx="1" /><rect x="13" y="13" width="8" height="7" rx="1" /></>,
 };
 
+/** Renderiza AppIcon y coordina su funcionamiento en la interfaz. */
 export function AppIcon({ name, className = "" }: { name: IconName; className?: string }) {
   return (
     <svg aria-hidden="true" className={`app-icon ${className}`} viewBox="0 0 24 24">

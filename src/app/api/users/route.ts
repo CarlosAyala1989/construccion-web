@@ -1,3 +1,6 @@
+/**
+ * Controlador de users: valida la petición y devuelve su resultado HTTP.
+ */
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
@@ -24,6 +27,7 @@ function sanitizeUser<T extends { password: string; twoFactorSecret: string | nu
   return Object.fromEntries(safeEntries) as Omit<T, "password" | "twoFactorSecret">;
 }
 
+/** Gestiona espacio de trabajo ids durante la interacción con users. */
 async function validateWorkspaceIds(workspaceIds: string[]) {
   if (workspaceIds.length === 0) return true;
 

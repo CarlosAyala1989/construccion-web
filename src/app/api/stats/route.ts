@@ -1,3 +1,6 @@
+/**
+ * API stats: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";

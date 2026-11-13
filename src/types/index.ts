@@ -19,6 +19,7 @@ export interface User {
   updatedAt: string;
 }
 
+/** Define los datos de espacio de trabajo. */
 export interface Workspace {
   id: string;
   name: string;
@@ -31,6 +32,7 @@ export interface Workspace {
   updatedAt: string;
 }
 
+/** Define los datos de seguridad policy. */
 export interface SecurityPolicy {
   id: string;
   type: "SEMANTIC" | "VISUAL";
@@ -44,6 +46,7 @@ export interface SecurityPolicy {
   updatedAt: string;
 }
 
+/** Define los datos de documento contraseña grant. */
 export interface DocumentPasswordGrant {
   id: string;
   userId: string;
@@ -55,6 +58,7 @@ export interface DocumentPasswordGrant {
   createdAt: string;
 }
 
+/** Define los datos de audit log. */
 export interface AuditLog {
   id: string;
   userId: string | null;
@@ -67,6 +71,7 @@ export interface AuditLog {
   createdAt: string;
 }
 
+/** Define los datos de config. */
 export interface Config {
   id: string;
   compressionEnabled: boolean;
@@ -78,6 +83,7 @@ export interface Config {
   createdAt: string;
 }
 
+/** Define los datos de nomenclature field. */
 export interface NomenclatureField {
   id: string;
   fieldName: string;
