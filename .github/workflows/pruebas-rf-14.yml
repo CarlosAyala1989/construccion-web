@@ -1,3 +1,4 @@
+# Flujo de integración continua para pruebas rf 14.
 name: "Pruebas automatizadas — RF-14 Prevención de colisiones"
 
 on:

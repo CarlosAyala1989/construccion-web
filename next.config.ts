@@ -1,3 +1,6 @@
+/**
+ * Código de next para la aplicación web de gestión documental.
+ */
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {

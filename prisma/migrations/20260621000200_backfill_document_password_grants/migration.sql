@@ -1,3 +1,4 @@
+-- Migración SQL backfill document password grants; se ejecuta en orden cronológico.
 INSERT INTO `DocumentPasswordGrant` (
   `id`,
   `userId`,
