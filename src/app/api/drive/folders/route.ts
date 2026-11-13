@@ -1,3 +1,6 @@
+/**
+ * Ruta API drive/folders: procesa solicitudes, valida condiciones de acceso y responde al cliente.
+ */
 import { NextResponse } from "next/server";
 
 // GET /api/drive/folders?parentId=xxx&token=xxx
