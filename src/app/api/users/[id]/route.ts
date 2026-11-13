@@ -1,3 +1,6 @@
+/**
+ * API users/[id]: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +18,7 @@ import {
   parseAccountStatusPayload,
 } from "@/lib/user-status";
 
+/** Contrato de datos para UserUpdateRequest en esta ruta. */
 type UserUpdateRequest = {
   isActive?: boolean;
   name?: string;
@@ -26,6 +30,7 @@ type UserUpdateRequest = {
   passwordGrantKeys?: string[];
 };
 
+/** Resuelve la petición HTTP PATCH de users/[id] y devuelve el resultado o error correspondiente. */
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getAdminSession();
   if (!session) return unauthorizedAdminResponse();

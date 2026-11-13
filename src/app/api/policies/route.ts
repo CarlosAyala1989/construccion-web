@@ -1,8 +1,12 @@
+/**
+ * API policies: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+/** Resuelve la petición HTTP GET de policies y devuelve el resultado o error correspondiente. */
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
@@ -27,6 +31,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(policies);
 }
 
+/** Resuelve la petición HTTP POST de policies y devuelve el resultado o error correspondiente. */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   
@@ -66,6 +71,7 @@ export async function POST(request: Request) {
   }
 }
 
+/** Resuelve la petición HTTP DELETE de policies y devuelve el resultado o error correspondiente. */
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions);
   

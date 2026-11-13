@@ -1,3 +1,6 @@
+/**
+ * API drive/token: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";

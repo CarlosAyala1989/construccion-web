@@ -1,3 +1,6 @@
+/**
+ * API users/[id]/reset-password: procesa las peticiones y valida datos y permisos antes de responder.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
