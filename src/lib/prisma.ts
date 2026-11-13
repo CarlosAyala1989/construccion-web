@@ -1,3 +1,6 @@
+/**
+ * Utilidades compartidas de prisma para servicios de la aplicación documental.
+ */
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };

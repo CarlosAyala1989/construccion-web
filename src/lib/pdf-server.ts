@@ -1,3 +1,6 @@
+/**
+ * Utilidades compartidas de PDF server para servicios de la aplicación documental.
+ */
 import { execFile } from "child_process";
 import { randomUUID } from "crypto";
 import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
@@ -25,11 +28,13 @@ const HTTP_UNPROCESSABLE_ENTITY = 422;
 const STANDARD_FONT_DATA_URL = path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts", path.sep);
 const CMAP_URL = path.join(process.cwd(), "node_modules", "pdfjs-dist", "cmaps", path.sep);
 
+/** Describe los campos y tipos de PDF rewrite result. */
 export type PdfRewriteResult = {
   buffer: Buffer;
   matched: CandidatePassword | null;
 };
 
+/** Describe los campos y tipos de PDF image render result. */
 export type PdfImageRenderResult = {
   pages: Array<{
     pageNumber: number;
@@ -38,6 +43,7 @@ export type PdfImageRenderResult = {
   matched: CandidatePassword | null;
 };
 
+/** Agrupa la lógica de PDF processing error y su estado asociado. */
 export class PdfProcessingError extends Error {
   status: number;
   code: string;

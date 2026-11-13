@@ -1,3 +1,6 @@
+/**
+ * Utilidades compartidas de Google Drive para servicios de la aplicación documental.
+ */
 import { prisma } from "@/lib/prisma";
 import { createHash, randomUUID, timingSafeEqual } from "crypto";
 
@@ -7,6 +10,7 @@ const GOOGLE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 export const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 export const DRIVE_SHA256_PROPERTY = "sha256";
 
+/** Describe los campos y tipos de Drive PDF archivo. */
 export type DrivePdfFile = {
   id: string;
   name: string;
@@ -17,19 +21,23 @@ export type DrivePdfFile = {
   appProperties?: Record<string, string>;
 };
 
+/** Describe los campos y tipos de Drive carpeta elemento. */
 export type DriveFolderItem = DrivePdfFile;
 
+/** Describe los campos y tipos de Google credenciales. */
 type GoogleCredentials = {
   clientId: string;
   clientSecret: string;
 };
 
+/** Describe los campos y tipos de Google error payload. */
 type GoogleErrorPayload = {
   error?: string;
   error_description?: string;
   message?: string;
 };
 
+/** Agrupa la lógica de Google Drive error y su estado asociado. */
 export class GoogleDriveError extends Error {
   status: number;
   code?: string;
@@ -42,10 +50,12 @@ export class GoogleDriveError extends Error {
   }
 }
 
+/** Obtiene Google Drive error estado dentro de Google Drive. */
 export function getGoogleDriveErrorStatus(error: unknown, fallbackStatus = 500) {
   return error instanceof GoogleDriveError ? error.status : fallbackStatus;
 }
 
+/** Obtiene Drive acceso token dentro de Google Drive. */
 export async function getDriveAccessToken(refreshToken: string) {
   const credentials = await getGoogleCredentials();
 
@@ -87,6 +97,7 @@ export async function getDriveAccessToken(refreshToken: string) {
   return String(data.access_token || "");
 }
 
+/** Lista Drive PDF dentro de Google Drive. */
 export async function listDrivePdfs(folderId: string, accessToken: string) {
   const files: DrivePdfFile[] = [];
   let pageToken = "";
@@ -125,6 +136,7 @@ export async function listDrivePdfs(folderId: string, accessToken: string) {
   return files;
 }
 
+/** Lista Drive carpeta dentro de Google Drive. */
 export async function listDriveFolder(folderId: string, accessToken: string) {
   const items: DriveFolderItem[] = [];
   let pageToken = "";
@@ -168,6 +180,7 @@ export async function listDriveFolder(folderId: string, accessToken: string) {
   });
 }
 
+/** Obtiene Drive archivo metadatos dentro de Google Drive. */
 export async function getDriveFileMetadata(fileId: string, accessToken: string) {
   const params = new URLSearchParams({
     fields: "id,name,mimeType,size,parents,modifiedTime,appProperties",
@@ -190,6 +203,7 @@ export async function getDriveFileMetadata(fileId: string, accessToken: string) 
   return response.json() as Promise<DrivePdfFile & { parents?: string[] }>;
 }
 
+/** Comprueba Drive elemento within carpeta dentro de Google Drive. */
 export async function isDriveItemWithinFolder(itemId: string, rootFolderId: string, accessToken: string) {
   if (itemId === rootFolderId) return true;
 
@@ -211,6 +225,7 @@ export async function isDriveItemWithinFolder(itemId: string, rootFolderId: stri
   return false;
 }
 
+/** Descarga Drive archivo dentro de Google Drive. */
 export async function downloadDriveFile(fileId: string, accessToken: string) {
   const params = new URLSearchParams({
     alt: "media",
@@ -233,6 +248,7 @@ export async function downloadDriveFile(fileId: string, accessToken: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
+/** Sube Drive PDF dentro de Google Drive. */
 export async function uploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, accessToken: string) {
   const sha256 = calculateSha256(pdfBuffer);
   const availableFileName = await preventDriveNameCollision(folderId, fileName, accessToken);
@@ -264,10 +280,12 @@ async function preventDriveNameCollision(folderId: string, fileName: string, acc
   return candidate;
 }
 
+/** Calcula SHA-256 dentro de Google Drive. */
 export function calculateSha256(fileBuffer: Buffer) {
   return createHash("sha256").update(fileBuffer).digest("hex");
 }
 
+/** Verifica Drive archivo SHA-256 dentro de Google Drive. */
 export function verifyDriveFileSha256(fileBuffer: Buffer, expectedSha256?: string) {
   if (!expectedSha256) {
     throw new GoogleDriveError(
@@ -303,6 +321,7 @@ export function verifyDriveFileSha256(fileBuffer: Buffer, expectedSha256?: strin
   return actualSha256;
 }
 
+/** Realiza upload Drive PDF dentro de Google Drive. */
 async function simpleUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, sha256: string, accessToken: string) {
   const boundary = `gobernanza_${randomUUID()}`;
   const metadata = {
@@ -342,6 +361,7 @@ async function simpleUploadDrivePdf(folderId: string, fileName: string, pdfBuffe
   return response.json() as Promise<{ id: string; name: string }>;
 }
 
+/** Realiza upload Drive PDF dentro de Google Drive. */
 async function resumableUploadDrivePdf(folderId: string, fileName: string, pdfBuffer: Buffer, sha256: string, accessToken: string) {
   const metadata = {
     name: fileName,
@@ -396,6 +416,7 @@ async function resumableUploadDrivePdf(folderId: string, fileName: string, pdfBu
   return uploadResponse.json() as Promise<{ id: string; name: string }>;
 }
 
+/** Obtiene Google credenciales dentro de Google Drive. */
 export async function getGoogleCredentials(): Promise<GoogleCredentials> {
   const envCredentials = {
     clientId: (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "").trim(),
@@ -425,6 +446,7 @@ export async function getGoogleCredentials(): Promise<GoogleCredentials> {
   }
 }
 
+/** Lee Google error dentro de Google Drive. */
 export async function readGoogleError(response: Response): Promise<GoogleErrorPayload> {
   const text = await response.text().catch(() => "");
   if (!text) return {};
@@ -448,6 +470,7 @@ export async function readGoogleError(response: Response): Promise<GoogleErrorPa
   }
 }
 
+/** Construye Google token error dentro de Google Drive. */
 function buildGoogleTokenError(payload: GoogleErrorPayload, status: number) {
   const code = payload.error || "google_token_error";
   const description = payload.error_description || payload.message || "";

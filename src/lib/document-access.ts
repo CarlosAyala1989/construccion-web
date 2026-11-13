@@ -1,3 +1,6 @@
+/**
+ * Utilidades compartidas de documento acceso para servicios de la aplicación documental.
+ */
 import { prisma } from "@/lib/prisma";
 import type { DocumentPasswordGrant, SecurityPolicy, User, Workspace } from "@prisma/client";
 
@@ -6,8 +9,10 @@ export const DOCUMENT_ACCESS_PASSWORD_SCOPED = "PASSWORD_SCOPED";
 export const ACCESS_ROLE_WEB_VIEWER = "WEB_VIEWER";
 export const ACCESS_ROLE_DESKTOP_SCANNER = "DESKTOP_SCANNER";
 
+/** Describe los campos y tipos de solicitud usuario. */
 type RequestUser = Pick<User, "id" | "name" | "email" | "role" | "isActive" | "accessRole" | "documentAccessMode">;
 
+/** Describe los campos y tipos de contraseña credential option. */
 export type PasswordCredentialOption = {
   credentialKey: string;
   workspaceId: string;
@@ -19,6 +24,7 @@ export type PasswordCredentialOption = {
   priority: number;
 };
 
+/** Describe los campos y tipos de candidate contraseña. */
 export type CandidatePassword = {
   password: string;
   sourceType: "DEFAULT" | "POLICY";
@@ -28,14 +34,17 @@ export type CandidatePassword = {
   priority: number;
 };
 
+/** Gestiona credential key dentro de documento acceso. */
 export function defaultCredentialKey(workspaceId: string) {
   return `DEFAULT:${workspaceId}`;
 }
 
+/** Gestiona credential key dentro de documento acceso. */
 export function policyCredentialKey(workspaceId: string, policyId: string) {
   return `POLICY:${workspaceId}:${policyId}`;
 }
 
+/** Obtiene active solicitud usuario dentro de documento acceso. */
 export async function getActiveRequestUser(userId: string): Promise<RequestUser | null> {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -88,6 +97,7 @@ export async function getAccessibleWorkspaces(user: RequestUser) {
   });
 }
 
+/** Obtiene autorizado espacio de trabajo dentro de documento acceso. */
 export async function getAuthorizedWorkspace(user: RequestUser, workspaceId: string) {
   const where =
     user.role === "ADMIN"
@@ -107,6 +117,7 @@ export async function getAuthorizedWorkspace(user: RequestUser, workspaceId: str
   });
 }
 
+/** Obtiene contraseña opciones for espacios de trabajo dentro de documento acceso. */
 export async function getPasswordOptionsForWorkspaces(workspaceIds: string[]) {
   const uniqueWorkspaceIds = [...new Set(workspaceIds.filter(Boolean))];
   if (uniqueWorkspaceIds.length === 0) return [];
@@ -165,6 +176,7 @@ export async function getPasswordOptionsForWorkspaces(workspaceIds: string[]) {
   return options.sort(sortCredentialOptions);
 }
 
+/** Construye permiso datos from keys dentro de documento acceso. */
 export async function buildGrantDataFromKeys(userId: string, workspaceIds: string[], credentialKeys: string[]) {
   const allowedOptions = await getPasswordOptionsForWorkspaces(workspaceIds);
   const allowedByKey = new Map(allowedOptions.map(option => [option.credentialKey, option]));
@@ -183,6 +195,7 @@ export async function buildGrantDataFromKeys(userId: string, workspaceIds: strin
     }));
 }
 
+/** Gestiona usuario contraseña permisos dentro de documento acceso. */
 export async function replaceUserPasswordGrants(userId: string, workspaceIds: string[], credentialKeys: string[]) {
   const grantData = await buildGrantDataFromKeys(userId, workspaceIds, credentialKeys);
 
@@ -335,6 +348,7 @@ function dedupeCandidates(candidates: CandidatePassword[]) {
   return [...byPassword.values()];
 }
 
+/** Gestiona credential opciones dentro de documento acceso. */
 function sortCredentialOptions(a: PasswordCredentialOption, b: PasswordCredentialOption) {
   if (a.workspaceName !== b.workspaceName) return a.workspaceName.localeCompare(b.workspaceName);
   return sortByPolicyPriority(a.policyType, a.priority, b.policyType, b.priority);
@@ -345,7 +359,9 @@ function sortCandidates(a: CandidatePassword, b: CandidatePassword) {
   return sortByPolicyPriority(a.policyType, a.priority, b.policyType, b.priority);
 }
 
+/** Gestiona by política priority dentro de documento acceso. */
 function sortByPolicyPriority(aType: string | null, aPriority: number, bType: string | null, bPriority: number) {
+  /** Gestiona rank dentro de documento acceso. */
   const typeRank = (type: string | null) => {
     if (type === "VISUAL") return 0;
     if (type === "SEMANTIC") return 1;

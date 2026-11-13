@@ -1,4 +1,7 @@
 "use client";
+/**
+ * Componente principal page para la navegación y renderización de la aplicación.
+ */
 
 import { AppIcon } from "@/components/AppIcon";
 import { getSession, signIn } from "next-auth/react";
@@ -7,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 declare global {
+  /** Describe los campos y tipos de window. */
   interface Window {
     grecaptcha?: {
       getResponse: () => string;
@@ -26,6 +30,7 @@ export default function LoginPage() {
   const router = useRouter();
   const captchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
+  /** Gestiona submit dentro de página. */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
