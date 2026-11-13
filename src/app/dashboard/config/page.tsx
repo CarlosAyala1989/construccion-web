@@ -1,7 +1,11 @@
 "use client";
+/**
+ * Interfaz de administración de config/page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
+/** Contrato de datos Config utilizado por la pantalla. */
 type Config = {
   id: string;
   compressionEnabled: boolean;
@@ -11,6 +15,7 @@ type Config = {
   cloudCredentials?: string | null;
 };
 
+/** Contrato de datos NomenclatureField utilizado por la pantalla. */
 type NomenclatureField = {
   id: string;
   fieldName: string;
@@ -19,6 +24,7 @@ type NomenclatureField = {
   separator: string;
 };
 
+/** Renderiza ConfigPage y coordina la experiencia de usuario. */
 export default function ConfigPage() {
   const [config, setConfig] = useState<Config | null>(null);
   const [nomenclatures, setNomenclatures] = useState<NomenclatureField[]>([]);
@@ -64,6 +70,7 @@ export default function ConfigPage() {
     void Promise.resolve().then(() => Promise.all([fetchConfig(), fetchNomenclatures()]));
   }, [fetchConfig, fetchNomenclatures]);
 
+  /** Gestiona save configuración durante la interacción con pantalla config. */
   const handleSaveConfig = async () => {
     if (!config) return;
     setIsSaving(true);
@@ -94,6 +101,7 @@ export default function ConfigPage() {
     setTimeout(() => setSaveMessage(""), 3000);
   };
 
+  /** Gestiona add nomenclature durante la interacción con pantalla config. */
   const handleAddNomenclature = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/nomenclatures", {
@@ -116,6 +124,7 @@ export default function ConfigPage() {
     }
   };
 
+  /** Gestiona delete nomenclature durante la interacción con pantalla config. */
   const handleDeleteNomenclature = async (id: string) => {
     if (!confirm("¿Eliminar este campo de nomenclatura?")) return;
 

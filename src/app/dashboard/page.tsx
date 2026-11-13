@@ -1,9 +1,13 @@
 "use client";
+/**
+ * Interfaz de administración de page.tsx; gestiona sus datos e interacciones.
+ */
 
 import { AppIcon } from "@/components/AppIcon";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+/** Contrato de datos RecentLog utilizado por la pantalla. */
 type RecentLog = {
   id: string;
   userName: string | null;
@@ -13,6 +17,7 @@ type RecentLog = {
   workspace: { name: string } | null;
 };
 
+/** Contrato de datos Stats utilizado por la pantalla. */
 type Stats = {
   totalUsers: number;
   activeUsers: number;
@@ -25,6 +30,7 @@ type Stats = {
   recentLogs: RecentLog[];
 };
 
+/** Renderiza DashboardPage y coordina la experiencia de usuario. */
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +42,7 @@ export default function DashboardPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  /** Formatea fecha durante la interacción con pantalla page.tsx. */
   const formatDate = (date: string) => new Date(date).toLocaleString("es-PE", {
     day: "2-digit",
     month: "short",
@@ -147,6 +154,7 @@ export default function DashboardPage() {
   );
 }
 
+/** Gestiona link durante la interacción con pantalla page.tsx. */
 function QuickLink({
   href,
   icon,

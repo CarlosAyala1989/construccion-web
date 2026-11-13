@@ -1,3 +1,6 @@
+/**
+ * Controlador de workspaces/[id]: valida la petición y devuelve su resultado HTTP.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
@@ -5,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { ACCESS_ROLE_WEB_VIEWER, DOCUMENT_ACCESS_PASSWORD_SCOPED, defaultCredentialKey } from "@/lib/document-access";
 import { getDriveAccessToken, getGoogleDriveErrorStatus } from "@/lib/google-drive";
 
+/** Procesa PATCH para workspaces/[id] y produce la respuesta HTTP. */
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   

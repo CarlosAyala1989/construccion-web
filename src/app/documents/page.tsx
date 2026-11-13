@@ -1,4 +1,7 @@
 "use client";
+/**
+ * Pantalla de navegación y consulta de documentos.
+ */
 
 import { AppIcon } from "@/components/AppIcon";
 import { signOut, useSession } from "next-auth/react";
@@ -6,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+/** Contrato de datos Workspace utilizado por la pantalla. */
 type Workspace = {
   id: string;
   name: string;
@@ -13,6 +17,7 @@ type Workspace = {
   provider: "GOOGLE_DRIVE" | "LOCAL" | "UNSUPPORTED";
 };
 
+/** Contrato de datos DocumentFile utilizado por la pantalla. */
 type DocumentFile = {
   id: string;
   name: string;
@@ -21,6 +26,7 @@ type DocumentFile = {
   modifiedTime?: string;
 };
 
+/** Contrato de datos DocumentFolder utilizado por la pantalla. */
 type DocumentFolder = {
   id: string;
   name: string;
@@ -28,11 +34,13 @@ type DocumentFolder = {
   modifiedTime?: string;
 };
 
+/** Contrato de datos FolderBreadcrumb utilizado por la pantalla. */
 type FolderBreadcrumb = {
   id: string;
   name: string;
 };
 
+/** Contrato de datos PasswordOption utilizado por la pantalla. */
 type PasswordOption = {
   credentialKey: string;
   label: string;
@@ -40,6 +48,7 @@ type PasswordOption = {
   policyType: string | null;
 };
 
+/** Contrato de datos ActivePdf utilizado por la pantalla. */
 type ActivePdf = {
   name: string;
   pages: Array<{
@@ -48,6 +57,7 @@ type ActivePdf = {
   }>;
 };
 
+/** Renderiza DocumentsPage y coordina la experiencia de usuario. */
 export default function DocumentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -152,6 +162,7 @@ export default function DocumentsPage() {
       });
   }, [selectedWorkspaceId]);
 
+  /** Gestiona open carpeta durante la interacción con explorador de documentos. */
   const handleOpenFolder = (folder: DocumentFolder) => {
     setIsLoadingDocuments(true);
     setCurrentFolderId(folder.id);
@@ -159,6 +170,7 @@ export default function DocumentsPage() {
     setActivePdf(null);
   };
 
+  /** Gestiona breadcrumb durante la interacción con explorador de documentos. */
   const handleBreadcrumb = (index: number) => {
     setIsLoadingDocuments(true);
     if (index < 0) {
@@ -172,6 +184,7 @@ export default function DocumentsPage() {
     setActivePdf(null);
   };
 
+  /** Gestiona view durante la interacción con explorador de documentos. */
   const handleView = async (file: DocumentFile) => {
     if (!selectedWorkspaceId) return;
 
@@ -202,6 +215,7 @@ export default function DocumentsPage() {
     }
   };
 
+  /** Gestiona upload durante la interacción con explorador de documentos. */
   const handleUpload = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -241,6 +255,7 @@ export default function DocumentsPage() {
     }
   };
 
+  /** Formatea size durante la interacción con explorador de documentos. */
   const formatSize = (size?: string) => {
     const value = Number(size || 0);
     if (!value) return "Sin tamaño";
@@ -248,6 +263,7 @@ export default function DocumentsPage() {
     return `${(value / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  /** Formatea fecha durante la interacción con explorador de documentos. */
   const formatDate = (date?: string) => {
     if (!date) return "Sin fecha";
     return new Date(date).toLocaleString("es-PE", {

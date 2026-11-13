@@ -1,5 +1,7 @@
+/* Sistema visual global: tokens de color, tipografía, componentes y estados responsivos. */
 @import "tailwindcss";
 
+/* Variables del tema compartidas por toda la interfaz. */
 :root {
   --bg: #f5f5f7;
   --surface: #ffffff;
@@ -34,6 +36,7 @@
   --focus-ring: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 72%);
 }
 
+/* Correspondencia entre tokens de estilo y utilidades de Tailwind. */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--fg);

@@ -1,4 +1,7 @@
 "use client";
+/**
+ * Interfaz de administración de layout.tsx; gestiona sus datos e interacciones.
+ */
 
 import { AppIcon } from "@/components/AppIcon";
 import { signOut, useSession } from "next-auth/react";
@@ -25,6 +28,7 @@ const titles: Record<string, string> = {
   "/dashboard/config": "Configuración",
 };
 
+/** Gestiona initials durante la interacción con pantalla layout.tsx. */
 function initials(name?: string | null) {
   if (!name) return "AD";
   return name
@@ -35,6 +39,7 @@ function initials(name?: string | null) {
     .toUpperCase();
 }
 
+/** Renderiza DashboardLayout y coordina la experiencia de usuario. */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -48,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isMenuOpen) return;
+    /** Cierra on escape durante la interacción con pantalla layout.tsx. */
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setIsMenuOpen(false);
     };
