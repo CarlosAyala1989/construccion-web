@@ -10,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Entidad User: campos y relaciones persistidas en el sistema.
 model User {
   id                     String                  @id @default(uuid())
   name                   String
@@ -28,6 +29,7 @@ model User {
   updatedAt              DateTime                @updatedAt
 }
 
+// Entidad Workspace: campos y relaciones persistidas en el sistema.
 model Workspace {
   id                     String                  @id @default(uuid())
   name                   String
@@ -43,6 +45,7 @@ model Workspace {
   updatedAt              DateTime                @updatedAt
 }
 
+// Entidad SecurityPolicy: campos y relaciones persistidas en el sistema.
 model SecurityPolicy {
   id                     String                  @id @default(uuid())
   type                   String // "SEMANTIC" (texto/OCR) o "VISUAL" (coincidencia de plantillas).
@@ -56,6 +59,7 @@ model SecurityPolicy {
   updatedAt              DateTime                @updatedAt
 }
 
+// Entidad DocumentPasswordGrant: campos y relaciones persistidas en el sistema.
 model DocumentPasswordGrant {
   id               String          @id @default(uuid())
   userId           String
@@ -74,6 +78,7 @@ model DocumentPasswordGrant {
   @@index([securityPolicyId])
 }
 
+// Entidad AuditLog: campos y relaciones persistidas en el sistema.
 model AuditLog {
   id          String     @id @default(uuid())
   userId      String?
@@ -87,6 +92,7 @@ model AuditLog {
 }
 
 // Configuración global del sistema (registro único administrado por el administrador).
+// Entidad Config: campos y relaciones persistidas en el sistema.
 model Config {
   id                     String   @id @default(uuid())
   compressionEnabled     Boolean  @default(false) // Activa la compresión PDF antes de la carga a la nube.
@@ -99,6 +105,7 @@ model Config {
 }
 
 // Campos de nomenclatura definidos por el administrador para clasificar documentos automáticamente.
+// Entidad NomenclatureField: campos y relaciones persistidas en el sistema.
 model NomenclatureField {
   id         String   @id @default(uuid())
   fieldName  String // Por ejemplo, "Código de Proyecto", "Disciplina" o "Fecha".
